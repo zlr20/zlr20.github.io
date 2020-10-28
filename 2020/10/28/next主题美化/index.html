@@ -18,28 +18,33 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="我的博客">
-<meta property="og:url" content="http://example.com/index.html">
+  <meta name="description" content="主题美化(持续更新ing)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="next主题美化">
+<meta property="og:url" content="http://example.com/2020/10/28/next%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html">
 <meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="主题美化(持续更新ing)">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-10-28T09:19:31.000Z">
+<meta property="article:modified_time" content="2020-10-28T02:36:59.778Z">
 <meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="hexo">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/">
+<link rel="canonical" href="http://example.com/2020/10/28/next%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>我的博客</title>
+  <title>next主题美化 | 我的博客</title>
   
 
 
@@ -152,9 +157,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -170,10 +176,9 @@
       <meta itemprop="name" content="我的博客">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/10/28/next%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/" class="post-title-link" itemprop="url">next主题美化</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          next主题美化
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -206,112 +211,54 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="主题美化-持续更新ing"><a href="#主题美化-持续更新ing" class="headerlink" title="主题美化(持续更新ing)"></a>主题美化(持续更新ing)</h2>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2020/10/28/next%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
+        <h2 id="主题美化-持续更新ing"><a href="#主题美化-持续更新ing" class="headerlink" title="主题美化(持续更新ing)"></a>主题美化(持续更新ing)</h2><a id="more"></a>
+
+<h2 id="修改next主题"><a href="#修改next主题" class="headerlink" title="修改next主题"></a>修改next主题</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Schemes</span></span><br><span class="line"><span class="comment">#scheme: Muse</span></span><br><span class="line"><span class="comment">#scheme: Mist</span></span><br><span class="line"><span class="comment">#scheme: Pisces</span></span><br><span class="line"><span class="attr">scheme:</span> <span class="string">Gemini</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="修改站点图标"><a href="#修改站点图标" class="headerlink" title="修改站点图标"></a>修改站点图标</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">favicon:</span></span><br><span class="line">  <span class="attr">small:</span> <span class="string">/images/small.ico</span></span><br><span class="line">  <span class="attr">medium:</span> <span class="string">/images/medium.ico</span></span><br><span class="line">  <span class="comment">#apple_touch_icon: /images/apple-touch-icon-next.png</span></span><br><span class="line">  <span class="comment">#safari_pinned_tab: /images/logo.svg</span></span><br><span class="line">  <span class="comment">#android_manifest: /images/manifest.json</span></span><br><span class="line">  <span class="comment">#ms_browserconfig: /images/browserconfig.xml</span></span><br></pre></td></tr></table></figure>
+
+<p>可以去<a target="_blank" rel="noopener" href="https://www.bitbug.net/">https://www.bitbug.net/</a> 制作。小图标16×16，中等图标32×32。</p>
+<h2 id="修改菜单选项"><a href="#修改菜单选项" class="headerlink" title="修改菜单选项"></a>修改菜单选项</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">menu:</span></span><br><span class="line">  <span class="attr">home:</span> <span class="string">/</span> <span class="string">||</span> <span class="string">fa</span> <span class="string">fa-home</span></span><br><span class="line">  <span class="attr">about:</span> <span class="string">/about/</span> <span class="string">||</span> <span class="string">fa</span> <span class="string">fa-user</span></span><br><span class="line">  <span class="attr">tags:</span> <span class="string">/tags/</span> <span class="string">||</span> <span class="string">fa</span> <span class="string">fa-tags</span></span><br><span class="line">  <span class="attr">categories:</span> <span class="string">/categories/</span> <span class="string">||</span> <span class="string">fa</span> <span class="string">fa-th</span></span><br><span class="line">  <span class="attr">archives:</span> <span class="string">/archives/</span> <span class="string">||</span> <span class="string">fa</span> <span class="string">fa-archive</span></span><br><span class="line">  <span class="comment">#schedule: /schedule/ || fa fa-calendar</span></span><br><span class="line">  <span class="comment">#sitemap: /sitemap.xml || fa fa-sitemap</span></span><br><span class="line">  <span class="comment">#commonweal: /404/ || fa fa-heartbeat</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Enable / Disable menu icons / item badges.</span></span><br><span class="line"><span class="attr">menu_settings:</span></span><br><span class="line">  <span class="attr">icons:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">badges:</span> <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p>图标直接从<a target="_blank" rel="noopener" href="https://fontawesome.com/icons">https://fontawesome.com/icons</a> 上引就好。</p>
+<h6 id="about页（关于）"><a href="#about页（关于）" class="headerlink" title="about页（关于）"></a>about页（关于）</h6><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo new page about</span><br></pre></td></tr></table></figure>
+
+<p>在index.md文件中写About页面的内容。</p>
+<h6 id="categories页（分类）"><a href="#categories页（分类）" class="headerlink" title="categories页（分类）"></a>categories页（分类）</h6><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hexo new page categories</span><br></pre></td></tr></table></figure>
+
+<p>找到<code>index.md</code>这个文件，添加<code>type: &quot;categories&quot;</code>到内容中，添加后是这样的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">---</span><br><span class="line">title: 文章分类</span><br><span class="line">date: 2017-05-27 13:47:40</span><br><span class="line">type: &quot;categories&quot;</span><br><span class="line">---</span><br></pre></td></tr></table></figure>
+
+<p>保存并关闭文件。</p>
+<h6 id="tags页（标签）"><a href="#tags页（标签）" class="headerlink" title="tags页（标签）"></a>tags页（标签）</h6><p>同分类页，<code>type: &quot;tags&quot;</code></p>
+
     </div>
 
     
     
     
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+          <div class="post-tags">
+              <a href="/tags/hexo/" rel="tag"># hexo</a>
+          </div>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/28/%E9%85%8D%E7%BD%AEhexo/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpg">
-      <meta itemprop="name" content="zhanglr">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="我的博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/10/28/%E9%85%8D%E7%BD%AEhexo/" class="post-title-link" itemprop="url">配置hexo</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-10-27 22:48:26" itemprop="dateCreated datePublished" datetime="2020-10-27T22:48:26Z">2020-10-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-28 01:57:57" itemprop="dateModified" datetime="2020-10-28T01:57:57Z">2020-10-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" itemprop="url" rel="index"><span itemprop="name">博客搭建</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="0-什么是Hexo"><a href="#0-什么是Hexo" class="headerlink" title="0.什么是Hexo"></a>0.什么是Hexo</h2><p>Hexo 是一个快速、简洁且高效的博客框架。Hexo 使用 Markdown]（或其他渲染引擎）解析文章，在几秒内，即可利用靓丽的主题生成静态网页。</p>
-<p>本文介绍了如何在Windows上搭建Hexo框架，并与Github进行关联，实现可以编写与访问的个人博客。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2020/10/28/%E9%85%8D%E7%BD%AEhexo/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/28/%E9%85%8D%E7%BD%AEhexo/" rel="prev" title="配置hexo">
+      <i class="fa fa-chevron-left"></i> 配置hexo
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
       </footer>
+    
   </article>
   
   
-  
-
-
   
 
 
@@ -364,6 +311,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96-%E6%8C%81%E7%BB%AD%E6%9B%B4%E6%96%B0ing"><span class="nav-text">主题美化(持续更新ing)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9next%E4%B8%BB%E9%A2%98"><span class="nav-text">修改next主题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E7%AB%99%E7%82%B9%E5%9B%BE%E6%A0%87"><span class="nav-text">修改站点图标</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E8%8F%9C%E5%8D%95%E9%80%89%E9%A1%B9"><span class="nav-text">修改菜单选项</span></a><ol class="nav-child"><li class="nav-item nav-level-6"><a class="nav-link" href="#about%E9%A1%B5%EF%BC%88%E5%85%B3%E4%BA%8E%EF%BC%89"><span class="nav-text">about页（关于）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#categories%E9%A1%B5%EF%BC%88%E5%88%86%E7%B1%BB%EF%BC%89"><span class="nav-text">categories页（分类）</span></a></li><li class="nav-item nav-level-6"><a class="nav-link" href="#tags%E9%A1%B5%EF%BC%88%E6%A0%87%E7%AD%BE%EF%BC%89"><span class="nav-text">tags页（标签）</span></a></li></ol></li></ol></li></ol></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 

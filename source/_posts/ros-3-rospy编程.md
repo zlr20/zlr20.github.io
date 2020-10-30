@@ -171,3 +171,138 @@ if __name__ == '__main__':
 
 建立完talker和listener之后，经过`catkin_make`，就完成了python版的topic通信模型。
 
+
+
+## 4. Service通信的实现
+
+### 4.1 创建功能包
+
+```bash
+catkin_create_pkg service_demo rospy std_msgs
+```
+
+### 4.2 定义.srv文件
+
+在service_demo/srv目录下一个名为`Greeting.srv`的服务文件，内容如下：
+
+```
+string name 
+int32 age
+# 短横线上边部分是服务请求的数据
+--- 
+# 短横线下面是服务回传的内容
+string feedback
+```
+
+然后修改`CMakeLists.txt`文件。ROS的catkin编译系统会将你自定义的msg、srv（甚至还有action）文件自动编译构建，生成对应的Python语言下可用的库或模块。许多初学者错误地以为，只要建立了一个.msg或.srv文件，就可以直接在程序中使用，这是不对的，必须在`CMakeLists.txt`中添加关于消息创建、指定消息/服务文件那几个宏命令并完成编译才能生成可用的消息或服务内容。
+
+事实上，对于服务，会生成三个类：Greeting, GreetingRequese以及GreetingResponse。
+
+### 4.3 服务提供节点
+
+service_demo/scripts/server_demo.py：
+
+```python
+#!/usr/bin/env python
+#coding=utf-8
+import rospy
+from service_demo.srv import *
+
+def handle_function(req):
+    # 注意我们是如何调用request请求内容的，是将其认为是一个对象的属性，在我们定义
+    # 的Service_demo类型的service中，request部分的内容包含两个变量，一个是字符串类型的name，另外一个是整数类型的age
+    rospy.loginfo( 'Request from %s with age %d', req.name, req.age)
+    # 返回一个Service_demo.Response实例化对象，其实就是返回一个response的对象，其包含的内容为我们在Service_demo.srv中定义的
+    # response部分的内容，我们定义了一个string类型的变量feedback，因此，此处实例化时传入字符串即可
+    return GreetingResponse("Hi %s. I' server!"%req.name)
+
+# 如果单独运行此文件，则将上面定义的server_srv作为主函数运行
+if __name__=="__main__":
+    # 初始化节点，命名为 "greetings_server"
+    rospy.init_node("greetings_server")
+    # 定义service的server端，service名称为"greetings"， service类型为Greeting
+    # 收到的request请求信息将作为参数传递给handle_function进行处理
+    s = rospy.Service("greetings", Greeting, handle_function)
+    rospy.loginfo("Ready to handle the request:")
+    # 阻塞程序结束
+    rospy.spin()
+```
+
+handle_function()传入的只有request，返回值是response，即：
+
+```python
+def handle_function(req):
+    ...
+    return GreetingResponse("Hi %s. I' server!"%req.name)
+```
+
+### 4.4 服务请求节点
+
+service_demo/scripts/client_demo.py：
+
+```python
+#!/usr/bin/env python
+# coding:utf-8
+import rospy
+from service_demo.srv import *
+
+if __name__=="__main__":
+    rospy.init_node('greetings_client')
+    # 等待有可用的服务 "greetings"
+    rospy.wait_for_service("greetings")
+    try:
+        # 定义service客户端，service名称为“greetings”，service类型为Greeting
+        greetings_client = rospy.ServiceProxy("greetings",Greeting)
+        # 向server端发送请求，发送的request内容为name和age,其值分别为"HAN", 20
+        # 此处发送的request内容与srv文件中定义的request部分的属性是一致的
+        resp = greetings_client.call("HAN",20)
+        rospy.loginfo("Message From server:%s"%resp.feedback)
+    except rospy.ServiceException, e:
+        rospy.logwarn("Service call failed: %s"%e)
+```
+
+以上代码中`greetings_client.call("HAN",20)`等同于`greetings_client("HAN",20)`。
+
+
+
+## 5. 参数服务器
+
+rospy关于参数服务器的API包括了增删查改等用法： `rospy.get_param()`，`rospy.set_param()`，`rospy.has_param()`，`rospy.delete_param()`，`rospy.search_param()`，`rospy.get_param_names()`。
+
+```python
+#!/usr/bin/env python
+# coding:utf-8
+import rospy
+
+def param_demo():
+    rospy.init_node("param_demo")
+    rate = rospy.Rate(1)
+    while(not rospy.is_shutdown()):
+        #get param
+        parameter1 = rospy.get_param("/param1")
+        parameter2 = rospy.get_param("/param2", default=222)
+        rospy.loginfo('Get param1 = %d', parameter1)
+        rospy.loginfo('Get param2 = %d', parameter2)
+
+        #delete param
+        rospy.delete_param('/param2')
+
+        #set param
+        rospy.set_param('/param2',2)
+
+        #check param
+        ifparam3 = rospy.has_param('/param3')
+        if(ifparam3):
+            rospy.loginfo('/param3 exists')
+        else:
+            rospy.loginfo('/param3 does not exist')
+
+        #get all param names
+        params = rospy.get_param_names()
+        rospy.loginfo('param list: %s', params)
+
+        rate.sleep()
+
+if __name__=="__main__":
+    param_demo()
+```

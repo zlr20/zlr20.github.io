@@ -127,7 +127,7 @@ catkin_add_gtest()       #catkin新加宏，生成测试
 install()                #安装至本机
 ```
 
-如果你想了解CMake的语法，请阅读《CMake实践》：https://github.com/Akagi201/learning-cmake/blob/master/docs/cmake-practice.pdf 。但是如果你用rospy做开发，基本不会用到太多，最常用的就是`add_xxx_files()`和`generate_message()`生成自定义的`msg/srv/action`接口。
+如果你想了解CMake的语法，请阅读《CMake实践》：https://github.com/Akagi201/learning-cmake/blob/master/docs/cmake-practice.pdf 。但是如果你用rospy做开发，基本不会用到太多，最常用的就是`add_xxx_files()`和`generate_message()`生成自定义的`msg/srv/action`接口。还有就是`catkin_python_setup()`与setup.py对应，对于包含自定义Python模块和包的场景不能少。
 
 
 

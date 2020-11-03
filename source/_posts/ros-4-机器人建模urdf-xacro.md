@@ -41,7 +41,7 @@ urdf全称unified robot description format，是一种特殊的xml文件格式�
 
 更精细地：
 
-
+<img src='http://i2.tiimg.com/728885/613869fb12843da7.png' width=650>
 
 ### 1.2 link
 
@@ -97,7 +97,9 @@ joint拥有如下标签：
 
 ### 1.4 可视化
 
-完整urdf文件：https://github.com/huchunxu/ros_basic_tutorials/blob/master/handwriting_urdf/mbot_description/urdf/mbot.urdf
+完整urdf文件：
+
+https://github.com/huchunxu/ros_basic_tutorials/blob/master/handwriting_urdf/mbot_description/urdf/mbot.urdf
 
 ```bash
 roslaunch urdf_tutorial display.launch model:=path/to/your/xxx.urdf gui:=true

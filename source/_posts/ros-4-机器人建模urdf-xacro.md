@@ -226,7 +226,9 @@ roslaunch urdf_tutorial xacrodisplay.launch model:=path/to/your/xxx.urdf.xacro g
 
 在一个实际机器人项目中，整个项目一般是一个元功能包，对于机器人的描述会建立并放置在一个`xxx_description`的功能包，比如`ur_description`就是ur机器人项目下的一个功能包。
 
-以下面mbot_description功能包为例，完整工程参考：https://github.com/huchunxu/ros_basic_tutorials/tree/master/handwriting_urdf/mbot_description
+以下面mbot_description功能包为例，完整工程参考：
+
+https://github.com/huchunxu/ros_basic_tutorials/tree/master/handwriting_urdf/mbot_description 
 
 建立时，要指明依赖ROS自带的urdf和xacro功能包，分别用于解析urdf和xacro文件。
 
@@ -253,14 +255,13 @@ xx_description下的launch文件一般是只在rviz中做可视化的（gazebo�
 	<param name="robot_description" textfile="$(find mbot_description)/urdf/mbot.urdf" />
 
 	<!-- 运行joint_state_publisher节点，发布机器人的关节状态  -->
-	<node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" 	                         type="joint_state_publisher_gui" />
+	<node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" />
 	
 	<!-- 运行robot_state_publisher节点，发布tf  -->
-	<node name="robot_state_publisher" pkg="robot_state_publisher"                                   type="robot_state_publisher" />
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 	
 	<!-- 运行rviz可视化界面 -->
-	<node name="rviz" pkg="rviz" type="rviz" 
-          args="-d $(find mbot_description)/config/mbot_urdf.rviz" required="true" />
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find mbot_description)/config/mbot_urdf.rviz" required="true" />
 </launch>
 ```
 
@@ -268,9 +269,8 @@ xx_description下的launch文件一般是只在rviz中做可视化的（gazebo�
 
 ```xml
 <launch>
-	<arg name="model" default="$(find xacro)/xacro --inorder '$(find                                mbot_description)/urdf/mbot_gazebo.xacro'" />
-	
-    <arg name="gui" default="true" />
+	<arg name="model" default="$(find xacro)/xacro --inorder '$(find mbot_description)/urdf/mbot_gazebo.xacro'" />
+	<arg name="gui" default="true" />
 
 	<param name="robot_description" command="$(arg model)" />
 
@@ -278,14 +278,13 @@ xx_description下的launch文件一般是只在rviz中做可视化的（gazebo�
 	<param name="use_gui" value="$(arg gui)"/>
 
     <!-- 运行joint_state_publisher节点，发布机器人的关节状态  -->
-	<node name="joint_state_publisher" pkg="joint_state_publisher"                                   type="joint_state_publisher" />
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
 
 	<!-- 运行robot_state_publisher节点，发布tf  -->
-	<node name="robot_state_publisher" pkg="robot_state_publisher"                                   type="robot_state_publisher" />
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
     <!-- 运行rviz可视化界面 -->
-	<node name="rviz" pkg="rviz" type="rviz" 
-          args="-d $(find mbot_description)/config/mbot.rviz" required="true" />
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find mbot_description)/config/mbot.rviz" required="true" />
 
 </launch>
 ```

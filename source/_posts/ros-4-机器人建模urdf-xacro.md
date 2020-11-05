@@ -1,5 +1,5 @@
 ---
-title: ros(4)机器人建模urdf/xacro
+title: ros(4)urdf/xacro建模
 date: 2020-11-02 15:38:40
 tags:
 - ROS

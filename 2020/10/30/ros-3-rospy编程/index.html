@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/medium.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/small.ico">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="客户端库（Client Libarary）不仅仅指的是C++、Python语言的接口，其实是各种语言的接口统称。roscpp是最常用的接口，但是c++开发周期相对较长。本文我们来学习ROS的另一个接口rospy，也即是Python语言的接口。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ros(3)rospy编程">
+<meta property="og:url" content="http://example.com/2020/10/30/ros-3-rospy%E7%BC%96%E7%A8%8B/index.html">
+<meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="客户端库（Client Libarary）不仅仅指的是C++、Python语言的接口，其实是各种语言的接口统称。roscpp是最常用的接口，但是c++开发周期相对较长。本文我们来学习ROS的另一个接口rospy，也即是Python语言的接口。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-10-30T14:06:40.000Z">
+<meta property="article:modified_time" content="2021-02-23T14:04:23.011Z">
+<meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="ROS">
+<meta property="article:tag" content="Robotics">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2020/10/30/ros-3-rospy%E7%BC%96%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ros(3)rospy编程 | 我的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">我的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/30/ros-3-rospy%E7%BC%96%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="zhanglr">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ros(3)rospy编程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-10-30 14:06:40" itemprop="dateCreated datePublished" datetime="2020-10-30T14:06:40Z">2020-10-30</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-23 14:04:23" itemprop="dateModified" datetime="2021-02-23T14:04:23Z">2021-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ROS/" itemprop="url" rel="index"><span itemprop="name">ROS</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>客户端库（Client Libarary）不仅仅指的是C++、Python语言的接口，其实是各种语言的接口统称。roscpp是最常用的接口，但是c++开发周期相对较长。本文我们来学习ROS的另一个接口rospy，也即是Python语言的接口。</p>
+<a id="more"></a>
+<h2 id="rospy-vs-roscpp">1. rospy vs roscpp</h2>
+<p>rospy是Python版本的ROS客户端库，提供了Python编程需要的接口，你可以认为rospy就是一个Python的模块(Module)。这个模块位于<code>/opt/ros/kineetic/lib/python2.7/dist-packages/rospy</code>之中。</p>
+<p>rospy包含的功能与roscpp相似，都有关于node、topic、service、param、time相关的操作。但同时rospy和roscpp也有一些区别：</p>
+<ol type="1">
+<li>rospy没有一个NodeHandle，像创建publisher、subscriber等操作都被直接封装成了rospy中的函数或类，调用起来简单直观。</li>
+<li>rospy一些接口的命名和roscpp不一致，有些地方需要开发者注意，避免调用错误。</li>
+</ol>
+<p>相比于C++的开发，用Python来写ROS程序开发效率大大提高，诸如显示、类型转换等细节不再需要我们注意，节省时间。但Python的执行效率较低，同样一个功能用Python运行的耗时会高于C++。因此我们开发SLAM、路径规划、机器视觉等方面的算法时，往往优先选择C++。但ROS中绝大多数基本指令，例如<code>rostopic</code>,<code>roslaunch</code>都是用python开发的，简单轻巧。</p>
+<h2 id="代码组织形式">2. 代码组织形式</h2>
+<p>对于一些小体量的ROS程序，一般就是一个Python文件，放在script/路径下，非常简单。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">pkg_name</span><br><span class="line">|- script&#x2F;</span><br><span class="line">|---------|- xxx.py</span><br></pre></td></tr></table></figure>
+<p>当程序的功能比较复杂，放在一个脚本里搞不定时，就需要把一些功能放到Python Module里，以便其他的脚本来调用。ROS建议我们按照以下规范来建立一个Python的模块：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">pkg_name</span><br><span class="line">|- src&#x2F;</span><br><span class="line">|-------|-pkg_name&#x2F;</span><br><span class="line">|-------|-------------|- _init_.py</span><br><span class="line">|-------|-------------|- modulefiles.py</span><br><span class="line">|- scripts&#x2F;</span><br><span class="line">|-------|- xxx.py</span><br><span class="line">|- setup.py</span><br></pre></td></tr></table></figure>
+<p>在src下建立一个与你的package同名的路径，其中存放<code>_init_.py</code>以及你的模块文件。这样就建立好了ROS规范的Python模块，你可以在你的脚本中调用。</p>
+<h2 id="topic通信的实现">3. Topic通信的实现</h2>
+<h3 id="创建功能包">3.1 创建功能包</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">catkin_create_pkg topic_demo rospy std_msgs</span><br></pre></td></tr></table></figure>
+<h3 id="定义.msg文件">3.2 定义.msg文件</h3>
+<p>在topic_demo/msg文件夹下创建一个自定义的gps类型的消息，一个节点发布模拟的gps信息，另一个接收和计算距离原点的距离。</p>
+<p><code>gps.msg</code>定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">string state   #工作状态</span><br><span class="line">float32 x      #x坐标</span><br><span class="line">float32 y      #y坐标</span><br></pre></td></tr></table></figure>
+<p>我们需要修改<code>CMakeLists.txt</code>文件：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">find_package</span>(catkin REQUIRED COMPONENTS</span><br><span class="line">rospy</span><br><span class="line">std_msgs</span><br><span class="line">message_generation   <span class="comment">#需要添加的地方</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">add_message_files(FILES gps.msg)  </span><br><span class="line"><span class="comment">#catkin在cmake之上新增的命令，指定从哪个消息文件生成</span></span><br><span class="line"></span><br><span class="line">generate_messages(DEPENDENCIES std_msgs) </span><br><span class="line"><span class="comment">#catkin新增的命令，用于生成消息</span></span><br><span class="line"><span class="comment">#DEPENDENCIES后面指定生成msg需要依赖其他什么消息，由于gps.msg用到了flaot32这种ROS标准消息，因此需要再把std_msgs作为依赖</span></span><br></pre></td></tr></table></figure>
+<p><code>package.xml</code>中需要的改动：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">depend</span>&gt;</span>message_generation<span class="tag">&lt;/<span class="name">depend</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>完成了以上所有工作，就可以回到工作空间，然后<code>catkin_make</code>了。</p>
+<p>这里需要强调一点的就是，对创建的msg进行<code>catkin_make</code>会在<code>~/catkin_ws/devel/lib/python2.7/dist-packages/topic_demo</code>下生成msg模块（module）。 有了这个模块，我们就可以在python程序中<code>from topic_demo.msg import gps</code>,从而进行gps类型消息的读写。</p>
+<h3 id="话题发布节点">3.3 话题发布节点</h3>
+<p>topic_demo/scripts/pytalker.py：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#coding=utf-8</span></span><br><span class="line"><span class="keyword">import</span> rospy</span><br><span class="line"><span class="comment">#导入自定义的数据类型</span></span><br><span class="line"><span class="keyword">from</span> topic_demo.msg <span class="keyword">import</span> gps</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">talker</span>():</span></span><br><span class="line">    <span class="comment">#Publisher函数第一个参数是话题名称，第二个参数数据类型，最后一个是缓冲区的大小</span></span><br><span class="line">    <span class="comment">#queue_size: None（不建议）  #这将设置为阻塞式同步收发模式！</span></span><br><span class="line">    <span class="comment">#queue_size: 0（不建议）#这将设置为无限缓冲区模式，很危险！</span></span><br><span class="line">    <span class="comment">#queue_size: 10 or more  #一般情况下，设为10 。queue_size太大了会导致数据延迟不同步。</span></span><br><span class="line">    pub = rospy.Publisher(<span class="string">&#x27;gps_info&#x27;</span>, gps , queue_size=<span class="number">10</span>)</span><br><span class="line">    rospy.init_node(<span class="string">&#x27;pytalker&#x27;</span>, anonymous=<span class="literal">True</span>)</span><br><span class="line">    <span class="comment">#更新频率是1hz</span></span><br><span class="line">    rate = rospy.Rate(<span class="number">1</span>) </span><br><span class="line">    x=<span class="number">1.0</span></span><br><span class="line">    y=<span class="number">2.0</span></span><br><span class="line">    state=<span class="string">&#x27;working&#x27;</span></span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">not</span> rospy.is_shutdown():</span><br><span class="line">        rospy.loginfo(<span class="string">&#x27;Talker: GPS: x=%f ,y= %f&#x27;</span>,x,y)</span><br><span class="line">        pub.publish(gps(state,x,y))</span><br><span class="line">        x=<span class="number">1.03</span>*x</span><br><span class="line">        y=<span class="number">1.01</span>*y</span><br><span class="line">        rate.sleep()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    talker()</span><br></pre></td></tr></table></figure>
+<p>以上代码与C++的区别体现在这几个方面：</p>
+<ol type="1">
+<li>rospy创建和初始化一个node，不再需要用NodeHandle。rospy中没有设计NodeHandle这个句柄，我们创建topic、service等等操作都直接用rospy里对应的方法就行。</li>
+<li>rospy中节点的初始化并一定得放在程序的开头，在Publisher建立后再初始化也没问题。</li>
+<li>消息的创建更加简单，比如gps类型的消息可以直接用类似于构造函数的方式<code>gps(state,x,y)</code>来创建。</li>
+<li>日志的输出方式不同，C++中是<code>ROS_INFO()</code>，而Python中是<code>rospy.loginfo()</code></li>
+<li>判断节点是否关闭的函数不同，C++用的是<code>ros::ok()</code>而Python中的接口是<code>rospy.is_shutdown()</code></li>
+</ol>
+<p>通过以上的区别可以看出，roscpp和rospy的接口并不一致，在名称上要尽量避免混用。在实现原理上，两套客户端库也有各自的实现，并没有基于一个统一的核心库来开发。这也是ROS在设计上不足的地方。</p>
+<h3 id="话题订阅节点">3.4 话题订阅节点</h3>
+<p>topic_demo/scripts/pylistener.py：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">#!/usr/bin/env python</span><br><span class="line"><span class="meta">#coding=utf-8</span></span><br><span class="line"><span class="keyword">import</span> rospy</span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line">#导入mgs</span><br><span class="line">from topic_demo.msg <span class="keyword">import</span> gps</span><br><span class="line"></span><br><span class="line">#回调函数输入的应该是msg</span><br><span class="line"><span class="function">def <span class="title">callback</span><span class="params">(gps)</span>:</span></span><br><span class="line"><span class="function">    distance </span>= math.<span class="built_in">sqrt</span>(math.<span class="built_in">pow</span>(gps.x, <span class="number">2</span>)+math.<span class="built_in">pow</span>(gps.y, <span class="number">2</span>)) </span><br><span class="line">    rospy.loginfo(&#x27;Listener: GPS: distance=%f, state=%s&#x27;, distance, gps.state)</span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    rospy.init_node(&#x27;pylistener&#x27;, anonymous=True)</span><br><span class="line">    #Subscriber函数第一个参数是topic的名称，第二个参数是接受的数据类型 第三个参数是回调函数的名称</span><br><span class="line">    rospy.Subscriber(&#x27;gps_info&#x27;, gps, callback)</span><br><span class="line">    rospy.spin()</span><br></pre></td></tr></table></figure>
+<p>在订阅节点的代码里，rospy与roscpp有一个不同的地方：rospy里没有<code>spinOnce()</code>，只有<code>spin()</code>。</p>
+<p>建立完talker和listener之后，经过<code>catkin_make</code>，就完成了python版的topic通信模型。</p>
+<h2 id="service通信的实现">4. Service通信的实现</h2>
+<h3 id="创建功能包-1">4.1 创建功能包</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">catkin_create_pkg service_demo rospy std_msgs</span><br></pre></td></tr></table></figure>
+<h3 id="定义.srv文件">4.2 定义.srv文件</h3>
+<p>在service_demo/srv目录下一个名为<code>Greeting.srv</code>的服务文件，内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">string name </span><br><span class="line">int32 age</span><br><span class="line"># 短横线上边部分是服务请求的数据</span><br><span class="line">--- </span><br><span class="line"># 短横线下面是服务回传的内容</span><br><span class="line">string feedback</span><br></pre></td></tr></table></figure>
+<p>然后修改<code>CMakeLists.txt</code>文件。ROS的catkin编译系统会将你自定义的msg、srv（甚至还有action）文件自动编译构建，生成对应的Python语言下可用的库或模块。许多初学者错误地以为，只要建立了一个.msg或.srv文件，就可以直接在程序中使用，这是不对的，必须在<code>CMakeLists.txt</code>中添加关于消息创建、指定消息/服务文件那几个宏命令并完成编译才能生成可用的消息或服务内容。</p>
+<p>事实上，对于服务，会生成三个类：Greeting, GreetingRequese以及GreetingResponse。</p>
+<h3 id="服务提供节点">4.3 服务提供节点</h3>
+<p>service_demo/scripts/server_demo.py：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment">#coding=utf-8</span></span><br><span class="line"><span class="keyword">import</span> rospy</span><br><span class="line"><span class="keyword">from</span> service_demo.srv <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle_function</span>(<span class="params">req</span>):</span></span><br><span class="line">    <span class="comment"># 注意我们是如何调用request请求内容的，是将其认为是一个对象的属性，在我们定义</span></span><br><span class="line">    <span class="comment"># 的Service_demo类型的service中，request部分的内容包含两个变量，一个是字符串类型的name，另外一个是整数类型的age</span></span><br><span class="line">    rospy.loginfo( <span class="string">&#x27;Request from %s with age %d&#x27;</span>, req.name, req.age)</span><br><span class="line">    <span class="comment"># 返回一个Service_demo.Response实例化对象，其实就是返回一个response的对象，其包含的内容为我们在Service_demo.srv中定义的</span></span><br><span class="line">    <span class="comment"># response部分的内容，我们定义了一个string类型的变量feedback，因此，此处实例化时传入字符串即可</span></span><br><span class="line">    <span class="keyword">return</span> GreetingResponse(<span class="string">&quot;Hi %s. I&#x27; server!&quot;</span>%req.name)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果单独运行此文件，则将上面定义的server_srv作为主函数运行</span></span><br><span class="line"><span class="keyword">if</span> __name__==<span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    <span class="comment"># 初始化节点，命名为 &quot;greetings_server&quot;</span></span><br><span class="line">    rospy.init_node(<span class="string">&quot;greetings_server&quot;</span>)</span><br><span class="line">    <span class="comment"># 定义service的server端，service名称为&quot;greetings&quot;， service类型为Greeting</span></span><br><span class="line">    <span class="comment"># 收到的request请求信息将作为参数传递给handle_function进行处理</span></span><br><span class="line">    s = rospy.Service(<span class="string">&quot;greetings&quot;</span>, Greeting, handle_function)</span><br><span class="line">    rospy.loginfo(<span class="string">&quot;Ready to handle the request:&quot;</span>)</span><br><span class="line">    <span class="comment"># 阻塞程序结束</span></span><br><span class="line">    rospy.spin()</span><br></pre></td></tr></table></figure>
+<p>handle_function()传入的只有request，返回值是response，即：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle_function</span>(<span class="params">req</span>):</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> GreetingResponse(<span class="string">&quot;Hi %s. I&#x27; server!&quot;</span>%req.name)</span><br></pre></td></tr></table></figure>
+<h3 id="服务请求节点">4.4 服务请求节点</h3>
+<p>service_demo/scripts/client_demo.py：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment"># coding:utf-8</span></span><br><span class="line"><span class="keyword">import</span> rospy</span><br><span class="line"><span class="keyword">from</span> service_demo.srv <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__==<span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    rospy.init_node(<span class="string">&#x27;greetings_client&#x27;</span>)</span><br><span class="line">    <span class="comment"># 等待有可用的服务 &quot;greetings&quot;</span></span><br><span class="line">    rospy.wait_for_service(<span class="string">&quot;greetings&quot;</span>)</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># 定义service客户端，service名称为“greetings”，service类型为Greeting</span></span><br><span class="line">        greetings_client = rospy.ServiceProxy(<span class="string">&quot;greetings&quot;</span>,Greeting)</span><br><span class="line">        <span class="comment"># 向server端发送请求，发送的request内容为name和age,其值分别为&quot;HAN&quot;, 20</span></span><br><span class="line">        <span class="comment"># 此处发送的request内容与srv文件中定义的request部分的属性是一致的</span></span><br><span class="line">        resp = greetings_client.call(<span class="string">&quot;HAN&quot;</span>,<span class="number">20</span>)</span><br><span class="line">        rospy.loginfo(<span class="string">&quot;Message From server:%s&quot;</span>%resp.feedback)</span><br><span class="line">    <span class="keyword">except</span> rospy.ServiceException, e:</span><br><span class="line">        rospy.logwarn(<span class="string">&quot;Service call failed: %s&quot;</span>%e)</span><br></pre></td></tr></table></figure>
+<p>以上代码中<code>greetings_client.call("HAN",20)</code>等同于<code>greetings_client("HAN",20)</code>。</p>
+<h2 id="参数服务器">5. 参数服务器</h2>
+<p>rospy关于参数服务器的API包括了增删查改等用法： <code>rospy.get_param()</code>，<code>rospy.set_param()</code>，<code>rospy.has_param()</code>，<code>rospy.delete_param()</code>，<code>rospy.search_param()</code>，<code>rospy.get_param_names()</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python</span></span><br><span class="line"><span class="comment"># coding:utf-8</span></span><br><span class="line"><span class="keyword">import</span> rospy</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">param_demo</span>():</span></span><br><span class="line">    rospy.init_node(<span class="string">&quot;param_demo&quot;</span>)</span><br><span class="line">    rate = rospy.Rate(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">while</span>(<span class="keyword">not</span> rospy.is_shutdown()):</span><br><span class="line">        <span class="comment">#get param</span></span><br><span class="line">        parameter1 = rospy.get_param(<span class="string">&quot;/param1&quot;</span>)</span><br><span class="line">        parameter2 = rospy.get_param(<span class="string">&quot;/param2&quot;</span>, default=<span class="number">222</span>)</span><br><span class="line">        rospy.loginfo(<span class="string">&#x27;Get param1 = %d&#x27;</span>, parameter1)</span><br><span class="line">        rospy.loginfo(<span class="string">&#x27;Get param2 = %d&#x27;</span>, parameter2)</span><br><span class="line"></span><br><span class="line">        <span class="comment">#delete param</span></span><br><span class="line">        rospy.delete_param(<span class="string">&#x27;/param2&#x27;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">#set param</span></span><br><span class="line">        rospy.set_param(<span class="string">&#x27;/param2&#x27;</span>,<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">#check param</span></span><br><span class="line">        ifparam3 = rospy.has_param(<span class="string">&#x27;/param3&#x27;</span>)</span><br><span class="line">        <span class="keyword">if</span>(ifparam3):</span><br><span class="line">            rospy.loginfo(<span class="string">&#x27;/param3 exists&#x27;</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            rospy.loginfo(<span class="string">&#x27;/param3 does not exist&#x27;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="comment">#get all param names</span></span><br><span class="line">        params = rospy.get_param_names()</span><br><span class="line">        rospy.loginfo(<span class="string">&#x27;param list: %s&#x27;</span>, params)</span><br><span class="line"></span><br><span class="line">        rate.sleep()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__==<span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    param_demo()</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ROS/" rel="tag"># ROS</a>
+              <a href="/tags/Robotics/" rel="tag"># Robotics</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/30/ros-2-%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4/" rel="prev" title="ros(2)工作空间">
+      <i class="fa fa-chevron-left"></i> ros(2)工作空间
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/11/02/ros-4-%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%BB%BA%E6%A8%A1urdf-xacro/" rel="next" title="ros(4)urdf/xacro建模">
+      ros(4)urdf/xacro建模 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#rospy-vs-roscpp"><span class="nav-text">1. rospy vs roscpp</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E7%BB%84%E7%BB%87%E5%BD%A2%E5%BC%8F"><span class="nav-text">2. 代码组织形式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#topic%E9%80%9A%E4%BF%A1%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-text">3. Topic通信的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%8A%9F%E8%83%BD%E5%8C%85"><span class="nav-text">3.1 创建功能包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89.msg%E6%96%87%E4%BB%B6"><span class="nav-text">3.2 定义.msg文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%9D%E9%A2%98%E5%8F%91%E5%B8%83%E8%8A%82%E7%82%B9"><span class="nav-text">3.3 话题发布节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%9D%E9%A2%98%E8%AE%A2%E9%98%85%E8%8A%82%E7%82%B9"><span class="nav-text">3.4 话题订阅节点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#service%E9%80%9A%E4%BF%A1%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-text">4. Service通信的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%8A%9F%E8%83%BD%E5%8C%85-1"><span class="nav-text">4.1 创建功能包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89.srv%E6%96%87%E4%BB%B6"><span class="nav-text">4.2 定义.srv文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E6%8F%90%E4%BE%9B%E8%8A%82%E7%82%B9"><span class="nav-text">4.3 服务提供节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E8%AF%B7%E6%B1%82%E8%8A%82%E7%82%B9"><span class="nav-text">4.4 服务请求节点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E6%95%B0%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-text">5. 参数服务器</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="zhanglr"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">zhanglr</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zlr20" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zlr20" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zlr20@mails.tsinghua.edu.cn" title="E-Mail → mailto:zlr20@mails.tsinghua.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-robot"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhanglr</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

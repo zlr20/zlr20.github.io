@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/medium.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/small.ico">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本文介绍了ROS的工作空间，也就是ROS的文件系统结构。要学会建立一个ROS工程，首先要认识一个ROS工程，了解它们的组织架构，从根本上熟悉ROS项目的组织形式，了解各个文件的功能和作用，才能正确的进行开发和编程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ros(2)工作空间">
+<meta property="og:url" content="http://example.com/2020/10/30/ros-2-%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4/index.html">
+<meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="本文介绍了ROS的工作空间，也就是ROS的文件系统结构。要学会建立一个ROS工程，首先要认识一个ROS工程，了解它们的组织架构，从根本上熟悉ROS项目的组织形式，了解各个文件的功能和作用，才能正确的进行开发和编程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://i1.fuimg.com/728885/7f08cc33fc26c635.jpg">
+<meta property="og:image" content="http://i1.fuimg.com/728885/4475ac307c3beedd.jpg">
+<meta property="og:image" content="http://i1.fuimg.com/728885/3dddd644f39ca6fe.png">
+<meta property="og:image" content="http://i1.fuimg.com/728885/5e3aca32dae15d7b.png">
+<meta property="article:published_time" content="2020-10-29T16:10:01.000Z">
+<meta property="article:modified_time" content="2021-02-23T14:04:23.011Z">
+<meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="ROS">
+<meta property="article:tag" content="Robotics">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://i1.fuimg.com/728885/7f08cc33fc26c635.jpg">
+
+<link rel="canonical" href="http://example.com/2020/10/30/ros-2-%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ros(2)工作空间 | 我的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">我的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/30/ros-2-%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="zhanglr">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ros(2)工作空间
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-10-29 16:10:01" itemprop="dateCreated datePublished" datetime="2020-10-29T16:10:01Z">2020-10-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-23 14:04:23" itemprop="dateModified" datetime="2021-02-23T14:04:23Z">2021-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ROS/" itemprop="url" rel="index"><span itemprop="name">ROS</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文介绍了ROS的工作空间，也就是ROS的文件系统结构。要学会建立一个ROS工程，首先要认识一个ROS工程，了解它们的组织架构，从根本上熟悉ROS项目的组织形式，了解各个文件的功能和作用，才能正确的进行开发和编程。</p>
+<a id="more"></a>
+<h2 id="catkin编译系统">1. Catkin编译系统</h2>
+<h3 id="基本概念">1.1 基本概念</h3>
+<p>对于源代码包，我们只有编译才能在系统上运行。而Linux下的编译器有gcc、g++，随着源文件的增加，直接用gcc/g++命令的方式显得效率低下，人们开始用Makefile来进行编译。然而随着工程体量的增大，Makefile也不能满足需求，于是便出现了Cmake工具。CMake是对make工具的生成器，是更高层的工具，它简化了编译构建过程，能够管理大型项目，具有良好的扩展性。对于ROS这样大体量的平台来说，就采用的是CMake，并且ROS对CMake进行了扩展，于是便有了Catkin编译系统，因此<strong>Catkin是基于CMake的编译构建系统</strong>。</p>
+<h3 id="工作空间结构">1.2 工作空间结构</h3>
+<p><strong>Catkin工作空间是创建、修改、编译catkin软件包的目录</strong>。catkin的工作空间，直观的形容就是一个仓库，里面装载着ROS的各种项目工程，便于系统组织管理调用。在可视化图形界面里是一个文件夹。我们自己写的ROS代码通常就放在工作空间中，catkin工作空间的结构如下：</p>
+<p><img src='http://i1.fuimg.com/728885/7f08cc33fc26c635.jpg' width=500></p>
+<p>这三个文件夹是catkin编译系统默认的。它们的具体作用如下：</p>
+<ul>
+<li>src/: ROS的catkin软件包（源代码包）</li>
+<li>build/: catkin（CMake）的缓存信息和中间文件</li>
+<li>devel/: 生成的目标文件（包括头文件，动态链接库，静态链接库，可执行文件等）、环境变量</li>
+</ul>
+<p>src文件中放着我们的功能包package，每个功能包实现一个特定的功能。</p>
+<p><img src='http://i1.fuimg.com/728885/4475ac307c3beedd.jpg' width=500></p>
+<p><strong>package是catkin工作空间的基本单元</strong>，我们在ROS开发时，写好代码，然后catkin_make，系统就会完成所有编译构建的工作。Catkin编译的工作流程如下：</p>
+<ol type="1">
+<li>首先在工作空间<code>catkin_ws/src/</code>下递归的查找其中每一个ROS的package。</li>
+<li>package中会有<code>package.xml</code>和<code>CMakeLists.txt</code>文件，Catkin(CMake)编译系统依据<code>CMakeLists.txt</code>文件,从而生成<code>makefiles</code>(放在<code>catkin_ws/build/</code>)。</li>
+<li>然后<code>make</code>刚刚生成的<code>makefiles</code>等文件，编译链接生成可执行文件(放在<code>catkin_ws/devel</code>)。</li>
+</ol>
+<p>也就是说，Catkin就是将<code>cmake</code>与<code>make</code>指令做了一个封装从而完成整个编译过程的工具。</p>
+<p>需要注意的是，我们只有在工作空间根目录下才能执行<code>catkin_make</code>。</p>
+<h3 id="构建工作空间">1.3 构建工作空间</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p ~/catkin_ws/src　　</span><br><span class="line"><span class="built_in">cd</span> ~/catkin_ws/</span><br><span class="line">catkin_make <span class="comment">#初始化工作空间</span></span><br></pre></td></tr></table></figure>
+<h2 id="package功能包">2. Package功能包</h2>
+<h3 id="基本概念-1">2.1 基本概念</h3>
+<p>ROS中的package的定义是catkin编译的基本单元，是集中完成一个任务的代码合集。一个package可以编译出来多个目标文件（ROS可执行程序、动态静态库、头文件等等）。</p>
+<h3 id="功能包结构">2.2 功能包结构</h3>
+<p>一个package下常见的文件、路径有：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">├── CMakeLists.txt    #package的编译规则(必须)</span><br><span class="line">├── package.xml       #package的描述信息(必须)</span><br><span class="line">├── src&#x2F;              #源代码文件</span><br><span class="line">├── include&#x2F;          #C++头文件</span><br><span class="line">├── scripts&#x2F;          #可执行脚本</span><br><span class="line">├── msg&#x2F;              #自定义消息</span><br><span class="line">├── srv&#x2F;              #自定义服务</span><br><span class="line">├── models&#x2F;           #3D模型文件，配合urdf用于仿真</span><br><span class="line">├── urdf&#x2F;             #urdf文件，机器人描述</span><br><span class="line">├── launch&#x2F;           #launch文件，启动配置</span><br><span class="line">├── param&#x2F;            #yaml文件，参数</span><br></pre></td></tr></table></figure>
+<p>其中定义package的是<code>CMakeLists.txt</code>和<code>package.xml</code>，这两个文件是package中必不可少的。catkin编译系统在编译前，首先就要解析这两个文件。这两个文件就定义了一个package。</p>
+<ul>
+<li>CMakeLists.txt: 定义package的包名、依赖、源文件、目标文件等编译规则，是package不可少的成分</li>
+<li>package.xml: 描述package的包名、版本号、作者、依赖等信息，是package不可少的成分</li>
+<li>src/: 存放ROS的源代码，包括C++的源码和(.cpp)以及Python的module(.py)</li>
+<li>include/: 存放C++源码对应的头文件</li>
+<li>scripts/: 存放可执行脚本，例如shell脚本(.sh)、Python脚本(.py)</li>
+<li>msg/: 存放自定义格式的消息(.msg)</li>
+<li>srv/: 存放自定义格式的服务(.srv)</li>
+<li>models/: 存放机器人或仿真场景的3D模型(.sda, .stl, .dae等)</li>
+<li>urdf/: 存放机器人的模型描述(.urdf或.xacro)</li>
+<li>launch/: 存放launch文件(.launch或.xml)</li>
+</ul>
+<p>通常ROS文件组织都是按照以上的形式，这是约定俗成的命名习惯，建议遵守。以上路径中，只有<code>CMakeLists.txt</code>和<code>package.xml</code>是必须的，其余路径根据软件包是否需要来决定。</p>
+<h3 id="构建功能包">2.3 构建功能包</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">catkin_create_pkg pkg_name [dependencies ...]</span><br></pre></td></tr></table></figure>
+<h2 id="cmakelist.txt">3. CMakeList.txt</h2>
+<p><code>CMakeLists.txt</code>是Cmake编译系统的规则文件，而Catkin编译系统基本沿用了CMake的编译风格，只是针对ROS工程添加了一些宏定义。所以在写法上，catkin的<code>CMakeLists.txt</code>与CMake的基本一致。</p>
+<p>这个文件直接规定了这个package要依赖哪些package，要编译生成哪些目标，如何编译等等流程。所以<code>CMakeLists.txt</code>非常重要，它指定了由源码到目标文件的规则，catkin编译系统在工作时首先会找到每个package下的<code>CMakeLists.txt</code>，然后按照规则来编译构建。</p>
+<p><code>CMakeLists.txt</code>的基本语法都还是按照CMake，而Catkin在其中加入了少量的宏，总体的结构如下：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>() <span class="comment">#CMake的版本号 </span></span><br><span class="line"><span class="keyword">project</span>()                <span class="comment">#项目名称 </span></span><br><span class="line"><span class="keyword">find_package</span>()           <span class="comment">#找到编译需要的其他CMake/Catkin package</span></span><br><span class="line">catkin_python_setup()    <span class="comment">#catkin新加宏，打开catkin的Python Module的支持</span></span><br><span class="line">add_message_files()      <span class="comment">#catkin新加宏，添加自定义Message/Service/Action文件</span></span><br><span class="line">add_service_files()</span><br><span class="line">add_action_files()</span><br><span class="line">generate_message()       <span class="comment">#catkin新加宏，生成不同语言版本的msg/srv/action接口</span></span><br><span class="line">catkin_package()         <span class="comment">#catkin新加宏，生成当前package的cmake配置，供依赖本包的其他软件包调用</span></span><br><span class="line"><span class="keyword">add_library</span>()            <span class="comment">#生成库</span></span><br><span class="line"><span class="keyword">add_executable</span>()         <span class="comment">#生成可执行二进制文件</span></span><br><span class="line"><span class="keyword">add_dependencies</span>()       <span class="comment">#定义目标文件依赖于其他目标文件，确保其他目标已被构建</span></span><br><span class="line"><span class="keyword">target_link_libraries</span>()  <span class="comment">#链接</span></span><br><span class="line">catkin_add_gtest()       <span class="comment">#catkin新加宏，生成测试</span></span><br><span class="line"><span class="keyword">install</span>()                <span class="comment">#安装至本机</span></span><br></pre></td></tr></table></figure>
+<p>如果你想了解CMake的语法，请阅读《CMake实践》：https://github.com/Akagi201/learning-cmake/blob/master/docs/cmake-practice.pdf 。但是如果你用rospy做开发，基本不会用到太多，最常用的就是<code>add_xxx_files()</code>和<code>generate_message()</code>生成自定义的<code>msg/srv/action</code>接口。还有就是<code>catkin_python_setup()</code>与setup.py对应，对于包含自定义Python模块和包的场景不能少。</p>
+<h2 id="package.xml">4. package.xml</h2>
+<p><code>package.xml</code>也是一个catkin的package必备文件，它是这个软件包的描述文件。<code>pacakge.xml</code>包含了package的名称、版本号、内容描述、维护人员、软件许可、编译构建工具、编译依赖、运行依赖等信息。实际上<code>rospack find</code>、<code>rosdep</code>等命令之所以能快速定位和分析出package的依赖项信息，就是直接读取了每一个package中的<code>package.xml</code>文件。它为用户提供了快速了解一个package的渠道。</p>
+<p><code>pacakge.xml</code>遵循xml标签文本的写法，包含的标签为：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">pacakge</span>&gt;</span>               根标记文件  </span><br><span class="line"><span class="tag">&lt;<span class="name">name</span>&gt;</span>                  包名  </span><br><span class="line"><span class="tag">&lt;<span class="name">version</span>&gt;</span>               版本号  </span><br><span class="line"><span class="tag">&lt;<span class="name">description</span>&gt;</span>           内容描述  </span><br><span class="line"><span class="tag">&lt;<span class="name">maintainer</span>&gt;</span>            维护者 </span><br><span class="line"><span class="tag">&lt;<span class="name">license</span>&gt;</span>               软件许可证  </span><br><span class="line"><span class="tag">&lt;<span class="name">buildtool_depend</span>&gt;</span>      编译构建工具，通常为catkin    </span><br><span class="line"><span class="tag">&lt;<span class="name">depend</span>&gt;</span>                指定依赖项为编译、导出、运行需要的依赖，最常用</span><br><span class="line"><span class="tag">&lt;<span class="name">build_depend</span>&gt;</span>          编译依赖项  </span><br><span class="line"><span class="tag">&lt;<span class="name">build_export_depend</span>&gt;</span>   导出依赖项</span><br><span class="line"><span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>           运行依赖项</span><br><span class="line"><span class="tag">&lt;<span class="name">test_depend</span>&gt;</span>           测试用例依赖项  </span><br><span class="line"><span class="tag">&lt;<span class="name">doc_depend</span>&gt;</span>            文档依赖项</span><br></pre></td></tr></table></figure>
+<p>注：指定了<code>&lt;depend&gt;XXX&lt;/depend&gt;</code>相当于同时指定了<code>&lt;build_depend&gt;</code> <code>&lt;exec_depend&gt;</code>等，不需要分开写了。如果有什么项目是只有编译依赖或只有运行依赖的，才再<code>&lt;build_depend&gt;</code> 或<code>&lt;exec_depend&gt;</code>上指定。</p>
+<h2 id="metapackage元功能包">5. Metapackage元功能包</h2>
+<p>这部分内容只有在超大型项目才用得到，这里只是出于知识的完整性加以简单介绍。Metapackage在之前的版本中叫Stack(功能包集)，指的是将多个功能接近、甚至相互依赖的软件包的放到一个集合中去。</p>
+<p>moveit是ROS中机械臂运动规划相关的元功能包，项目地址https://github.com/ros-planning/moveit。</p>
+<p><img src='http://i1.fuimg.com/728885/3dddd644f39ca6fe.png' width=550></p>
+<p>打开moveit元功能包目录：</p>
+<p><img src='http://i1.fuimg.com/728885/5e3aca32dae15d7b.png' width=550></p>
+<p>没有源码，只有<code>CMakeList.txt</code>和<code>package.xml</code>。</p>
+<p><code>CMakeLists.txt</code>写法如下：</p>
+<figure class="highlight cmake"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cmake_minimum_required</span>(VERSION <span class="number">3.1</span>.<span class="number">3</span>)</span><br><span class="line"><span class="keyword">project</span>(moveit)</span><br><span class="line"><span class="keyword">find_package</span>(catkin REQUIRED)</span><br><span class="line">catkin_metapackage()   <span class="comment">#声明本软件包是一个metapacakge</span></span><br></pre></td></tr></table></figure>
+<p><code>pacakge.xml</code>写法如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=&quot;1.0&quot;?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">package</span> <span class="attr">format</span>=<span class="string">&quot;2&quot;</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">name</span>&gt;</span>moveit<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.1.1<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">description</span>&gt;</span>Meta package that contains all essential package of MoveIt. Until Summer 2016 MoveIt had been developed over multiple repositories, where developers&#x27; usability and maintenance effort was non-trivial. See <span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span> = <span class="string">&quot;http://discourse.ros.org/t/migration-to-one-github-repo-for-moveit/266/34&quot;</span>&gt;</span>the detailed discussion for the merge of several repositories<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">description</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;dave@picknik.ai&quot;</span>&gt;</span>Dave Coleman<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;mferguson@fetchrobotics.com&quot;</span>&gt;</span>Michael Ferguson<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;me@v4hn.de&quot;</span>&gt;</span>Michael Görner<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;rhaschke@techfak.uni-bielefeld.de&quot;</span>&gt;</span>Robert Haschke<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;imcmahon01@gmail.com&quot;</span>&gt;</span>Ian McMahon<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">maintainer</span> <span class="attr">email</span>=<span class="string">&quot;130s@2000.jukuin.keio.ac.jp&quot;</span>&gt;</span>Isaac I. Y. Saito<span class="tag">&lt;/<span class="name">maintainer</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">license</span>&gt;</span>BSD<span class="tag">&lt;/<span class="name">license</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">url</span> <span class="attr">type</span>=<span class="string">&quot;website&quot;</span>&gt;</span>http://moveit.ros.org<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">url</span> <span class="attr">type</span>=<span class="string">&quot;repository&quot;</span>&gt;</span>https://github.com/ros-planning/moveit<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">url</span> <span class="attr">type</span>=<span class="string">&quot;bugtracker&quot;</span>&gt;</span>https://github.com/ros-planning/moveit/issues<span class="tag">&lt;/<span class="name">url</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">author</span> <span class="attr">email</span>=<span class="string">&quot;isucan@google.com&quot;</span>&gt;</span>Ioan Sucan<span class="tag">&lt;/<span class="name">author</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">author</span> <span class="attr">email</span>=<span class="string">&quot;robot.moveit@gmail.com&quot;</span>&gt;</span>Sachin Chitta<span class="tag">&lt;/<span class="name">author</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">buildtool_depend</span>&gt;</span>catkin<span class="tag">&lt;/<span class="name">buildtool_depend</span>&gt;</span></span><br><span class="line">  <span class="comment">&lt;!--运行时依赖与其他实体功能包--&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_commander<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_core<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_planners<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_plugins<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_ros<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">exec_depend</span>&gt;</span>moveit_setup_assistant<span class="tag">&lt;/<span class="name">exec_depend</span>&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">export</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">metapackage</span>/&gt;</span>  <span class="comment">&lt;!--这里需要有export和metapacakge标签，注意这种固定写法--&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">export</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">package</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>个人感觉有点像Python写包时候的<code>__init__.py</code>，将所有模块并进了同一个命名空间。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ROS/" rel="tag"># ROS</a>
+              <a href="/tags/Robotics/" rel="tag"># Robotics</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/29/ros-1-%E8%AE%A1%E7%AE%97%E5%9B%BE/" rel="prev" title="ros(1)计算图">
+      <i class="fa fa-chevron-left"></i> ros(1)计算图
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/30/ros-3-rospy%E7%BC%96%E7%A8%8B/" rel="next" title="ros(3)rospy编程">
+      ros(3)rospy编程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#catkin%E7%BC%96%E8%AF%91%E7%B3%BB%E7%BB%9F"><span class="nav-text">1. Catkin编译系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">1.1 基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4%E7%BB%93%E6%9E%84"><span class="nav-text">1.2 工作空间结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E5%BB%BA%E5%B7%A5%E4%BD%9C%E7%A9%BA%E9%97%B4"><span class="nav-text">1.3 构建工作空间</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#package%E5%8A%9F%E8%83%BD%E5%8C%85"><span class="nav-text">2. Package功能包</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5-1"><span class="nav-text">2.1 基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%9F%E8%83%BD%E5%8C%85%E7%BB%93%E6%9E%84"><span class="nav-text">2.2 功能包结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E5%BB%BA%E5%8A%9F%E8%83%BD%E5%8C%85"><span class="nav-text">2.3 构建功能包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cmakelist.txt"><span class="nav-text">3. CMakeList.txt</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#package.xml"><span class="nav-text">4. package.xml</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#metapackage%E5%85%83%E5%8A%9F%E8%83%BD%E5%8C%85"><span class="nav-text">5. Metapackage元功能包</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="zhanglr"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">zhanglr</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zlr20" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zlr20" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zlr20@mails.tsinghua.edu.cn" title="E-Mail → mailto:zlr20@mails.tsinghua.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-robot"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhanglr</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

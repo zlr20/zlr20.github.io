@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/medium.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/small.ico">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="本文总结了如何使用urdf和xacro对机器人进行建模。ROS中使用urdf文件描述一个机器人，ROS解析了该描述文件后，机器人才可以被rviz可视化、gazebo仿真或moveit运动规划等等。xacro则提供了一种更高层的编写方式，便于用户使用，但是实际使用时，均会先调用rosrun xacro xacro.py xxx.urdf.xacro &gt; xxx.urdf先解析为urdf格式，再">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ros(4)urdf&#x2F;xacro建模">
+<meta property="og:url" content="http://example.com/2020/11/02/ros-4-%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%BB%BA%E6%A8%A1urdf-xacro/index.html">
+<meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="本文总结了如何使用urdf和xacro对机器人进行建模。ROS中使用urdf文件描述一个机器人，ROS解析了该描述文件后，机器人才可以被rviz可视化、gazebo仿真或moveit运动规划等等。xacro则提供了一种更高层的编写方式，便于用户使用，但是实际使用时，均会先调用rosrun xacro xacro.py xxx.urdf.xacro &gt; xxx.urdf先解析为urdf格式，再">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://i2.tiimg.com/728885/f80f318e2576e1c4.png">
+<meta property="og:image" content="http://i2.tiimg.com/728885/613869fb12843da7.png">
+<meta property="og:image" content="http://i2.tiimg.com/728885/87c2f66f5fac5aa3.png">
+<meta property="og:image" content="http://i2.tiimg.com/728885/ca08832987724fee.png">
+<meta property="article:published_time" content="2020-11-02T15:38:40.000Z">
+<meta property="article:modified_time" content="2021-02-23T14:04:23.011Z">
+<meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="ROS">
+<meta property="article:tag" content="Robotics">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://i2.tiimg.com/728885/f80f318e2576e1c4.png">
+
+<link rel="canonical" href="http://example.com/2020/11/02/ros-4-%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%BB%BA%E6%A8%A1urdf-xacro/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ros(4)urdf/xacro建模 | 我的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">我的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/02/ros-4-%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%BB%BA%E6%A8%A1urdf-xacro/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="zhanglr">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ros(4)urdf/xacro建模
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-02 15:38:40" itemprop="dateCreated datePublished" datetime="2020-11-02T15:38:40Z">2020-11-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-23 14:04:23" itemprop="dateModified" datetime="2021-02-23T14:04:23Z">2021-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ROS/" itemprop="url" rel="index"><span itemprop="name">ROS</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文总结了如何使用urdf和xacro对机器人进行建模。ROS中使用urdf文件描述一个机器人，ROS解析了该描述文件后，机器人才可以被rviz可视化、gazebo仿真或moveit运动规划等等。xacro则提供了一种更高层的编写方式，便于用户使用，但是实际使用时，均会先调用<code>rosrun xacro xacro.py xxx.urdf.xacro &gt; xxx.urdf</code>先解析为urdf格式，再使用。</p>
+<a id="more"></a>
+<h2 id="urdf">1. urdf</h2>
+<h3 id="基本结构">1.1 基本结构</h3>
+<p>urdf全称unified robot description format，是一种特殊的xml文件格式。</p>
+<p>一个机器人总是可以由树状的link描述，用joint连接父连杆与子连杆，这样就可以从基底逐级延伸到末端执行器。</p>
+<p><img src='http://i2.tiimg.com/728885/f80f318e2576e1c4.png' width=350></p>
+<p>因此urdf文件从最高层次有如下形式：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">robot</span> <span class="attr">name</span>=<span class="string">&quot;my_test_robot&quot;</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;link1&quot;</span>&gt;</span></span><br><span class="line">    	<span class="comment">&lt;!--xxx--&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">link</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">joint</span> <span class="attr">name</span>=<span class="string">&quot;joint1&quot;</span> <span class="attr">type</span>=<span class="string">&quot;xxx&quot;</span>&gt;</span></span><br><span class="line">        <span class="comment">&lt;!--xxx--&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">joint</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;link2&quot;</span>&gt;</span></span><br><span class="line">    	<span class="comment">&lt;!--xxx--&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">link</span>&gt;</span></span><br><span class="line">	...</span><br><span class="line"><span class="tag">&lt;/<span class="name">robot</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>更精细地：</p>
+<p><img src='http://i2.tiimg.com/728885/613869fb12843da7.png' width=650></p>
+<h3 id="link">1.2 link</h3>
+<p>对于一个link而言，它拥有<code>visual</code>(用于外观可视化)、<code>collision</code>(用于碰撞检测)、<code>inertial</code>(用于动力学计算)三个标签。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;base_link&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">visual</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot; 0 0 0&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0 0 0&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">geometry</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">cylinder</span> <span class="attr">length</span>=<span class="string">&quot;0.16&quot;</span> <span class="attr">radius</span>=<span class="string">&quot;0.20&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">geometry</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">color</span> <span class="attr">rgba</span>=<span class="string">&quot;1 0.4 0 1&quot;</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">visual</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">link</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>只有visual标签是必需的，且需要指定<code>geometry</code>(几何形状)、<code>origin</code>(几何中心坐标系相对于joint坐标系的偏移位姿)以及<code>color</code>。</p>
+<p>collision标签也需要指定<code>geometry</code>和<code>origin</code>，一般来说，几何形状可以是圆柱、立方体等基本形状，也可以是solidworks等外部导入的模型文件，出于计算性能考虑，我们可以在visual中使用精确的模型，在collision中近似用简单几何体替代。</p>
+<p>inertial标签包含动力学解算要用到的参数，包括<code>mass</code>(质量)以及<code>inertia</code>(惯性矩阵)。</p>
+<h3 id="joint">1.3 joint</h3>
+<p>对于一个joint而言，首先需要指定它的类型：</p>
+<table>
+<thead>
+<tr class="header">
+<th>关节类型</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>continuous</td>
+<td>旋转关节，可以围绕单轴无限旋转</td>
+</tr>
+<tr class="even">
+<td>revolute</td>
+<td>旋转关节，但是有旋转的角度限制</td>
+</tr>
+<tr class="odd">
+<td>prismatic</td>
+<td>滑动关节，沿某一轴线，有位置极限</td>
+</tr>
+<tr class="even">
+<td>fixed</td>
+<td>固定关节，不允许运动</td>
+</tr>
+<tr class="odd">
+<td>floating</td>
+<td>浮动关节（不常用）</td>
+</tr>
+<tr class="even">
+<td>planar</td>
+<td>平面关节（不常用）</td>
+</tr>
+</tbody>
+</table>
+<p>joint拥有如下标签：</p>
+<ul>
+<li>parent：父连杆</li>
+<li>child：子连杆</li>
+<li>origin：相对于父连杆坐标系的位姿偏移</li>
+<li>axis：旋转轴</li>
+<li>limit：极限设置</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">joint</span> <span class="attr">name</span>=<span class="string">&quot;left_wheel_joint&quot;</span> <span class="attr">type</span>=<span class="string">&quot;continuous&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">parent</span> <span class="attr">link</span>=<span class="string">&quot;base_link&quot;</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">child</span> <span class="attr">link</span>=<span class="string">&quot;left_wheel_link&quot;</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot;0 0.19 -0.05&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0 0 0&quot;</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">axis</span> <span class="attr">xyz</span>=<span class="string">&quot;0 1 0&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">joint</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h3 id="可视化">1.4 可视化</h3>
+<p>完整urdf文件：</p>
+<p>https://github.com/huchunxu/ros_basic_tutorials/blob/master/handwriting_urdf/mbot_description/urdf/mbot.urdf</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">roslaunch urdf_tutorial display.launch model:=path/to/your/xxx.urdf gui:=<span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<p><img src='http://i2.tiimg.com/728885/87c2f66f5fac5aa3.png' width=550></p>
+<h2 id="xacro">2. xacro</h2>
+<h3 id="xacro与urdf的关系">2.1 xacro与urdf的关系</h3>
+<p>xacro文件和urdf实质上是等价的，只不过xacro格式提供了一些更高级的方式来组织编辑机器人描述。借用在官方教程中一句话来形容xacro的优势: “Fortunately, you can use the <a target="_blank" rel="noopener" href="http://wiki.ros.org/xacro">xacro</a> package to make your life simpler”。</p>
+<p>xacro主要提供了三种方式来使得整个描述文件变得简单：</p>
+<ul>
+<li>像高级语言一样定义变量/属性，如指定PI，轮子半径，最大速度等，这样修改的时候全局生效，而不需要深入每一个link或joint去修改数值。</li>
+<li>定义宏函数，相似的操作可以通过传入不同参数完成，方便重用。如定义四个对称的轮子。</li>
+<li>include其他xacro文件，进一步提高模块化和重用性。</li>
+</ul>
+<h3 id="xacroproperty">2.2 xacro:property</h3>
+<p>用法：<code>&lt;xacro:property name="MASS" value="2.0"/&gt;</code>，在后面需要的时候以<code>$&#123;MASS&#125;</code>调用。注意<code>$&#123;...&#125;</code>中是可以加入数学运算的。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- PROPERTY LIST --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">xacro:property</span> <span class="attr">name</span>=<span class="string">&quot;M_PI&quot;</span> <span class="attr">value</span>=<span class="string">&quot;3.1415926&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">xacro:property</span> <span class="attr">name</span>=<span class="string">&quot;base_mass&quot;</span>   <span class="attr">value</span>=<span class="string">&quot;1&quot;</span> /&gt;</span> </span><br><span class="line"><span class="tag">&lt;<span class="name">xacro:property</span> <span class="attr">name</span>=<span class="string">&quot;base_radius&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.20&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">xacro:property</span> <span class="attr">name</span>=<span class="string">&quot;base_length&quot;</span> <span class="attr">value</span>=<span class="string">&quot;0.16&quot;</span>/&gt;</span></span><br><span class="line">....</span><br><span class="line">....</span><br><span class="line"><span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;base_link&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">visual</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot; 0 0 0&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0 0 0&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">geometry</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">cylinder</span> <span class="attr">length</span>=<span class="string">&quot;$&#123;base_length&#125;&quot;</span> <span class="attr">radius</span>=<span class="string">&quot;$&#123;base_radius&#125;&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">geometry</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">material</span> <span class="attr">name</span>=<span class="string">&quot;yellow&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">visual</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">collision</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot; 0 0 0&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0 0 0&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">geometry</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">cylinder</span> <span class="attr">length</span>=<span class="string">&quot;$&#123;base_length&#125;&quot;</span> <span class="attr">radius</span>=<span class="string">&quot;$&#123;base_radius&#125;&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">geometry</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">collision</span>&gt;</span>   </span><br><span class="line">    <span class="tag">&lt;<span class="name">cylinder_inertial_matrix</span>  <span class="attr">m</span>=<span class="string">&quot;$&#123;base_mass&#125;&quot;</span> <span class="attr">r</span>=<span class="string">&quot;$&#123;base_radius&#125;&quot;</span> <span class="attr">h</span>=<span class="string">&quot;$&#123;base_length&#125;&quot;</span> /&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">link</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h3 id="xacromacro">2.2 xacro:macro</h3>
+<p>用法：<code>&lt;xacro:macro name="fn_name" params="a b c"&gt;...&lt;/xacro:macro&gt;</code>定义宏函数，注意指定函数名和参数。在后面需要的时候以<code>&lt;fn_name a="1" b="2" c="3"/&gt;</code>调用。有的文件中会以<code>&lt;xacro:fn_name a="1" b="2" c="3"/&gt;</code>调用，不要被迷惑了，这不是在定义宏，而是在使用宏。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- Macro for robot wheel --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">xacro:macro</span> <span class="attr">name</span>=<span class="string">&quot;wheel&quot;</span> <span class="attr">params</span>=<span class="string">&quot;prefix reflect&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">joint</span> <span class="attr">name</span>=<span class="string">&quot;$&#123;prefix&#125;_wheel_joint&quot;</span> <span class="attr">type</span>=<span class="string">&quot;continuous&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot;0 $&#123;reflect*wheel_joint_y&#125; $&#123;-wheel_joint_z&#125;&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0 0 0&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">parent</span> <span class="attr">link</span>=<span class="string">&quot;base_link&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">child</span> <span class="attr">link</span>=<span class="string">&quot;$&#123;prefix&#125;_wheel_link&quot;</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">axis</span> <span class="attr">xyz</span>=<span class="string">&quot;0 1 0&quot;</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">joint</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;$&#123;prefix&#125;_wheel_link&quot;</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">visual</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot;0 0 0&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;$&#123;M_PI/2&#125; 0 0&quot;</span> /&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">geometry</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">cylinder</span> <span class="attr">radius</span>=<span class="string">&quot;$&#123;wheel_radius&#125;&quot;</span> <span class="attr">length</span> = <span class="string">&quot;$&#123;wheel_length&#125;&quot;</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">geometry</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">material</span> <span class="attr">name</span>=<span class="string">&quot;gray&quot;</span> /&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">visual</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">link</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">xacro:macro</span>&gt;</span></span><br><span class="line">...</span><br><span class="line">...</span><br><span class="line"><span class="tag">&lt;<span class="name">wheel</span> <span class="attr">prefix</span>=<span class="string">&quot;left&quot;</span>  <span class="attr">reflect</span>=<span class="string">&quot;1&quot;</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">wheel</span> <span class="attr">prefix</span>=<span class="string">&quot;right&quot;</span> <span class="attr">reflect</span>=<span class="string">&quot;-1&quot;</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+<p>通过调用宏函数，我们不用重复造轮子了！</p>
+<p>注意params中的prefix和reflect相当于局部变量，根据轮子的不同而指定，其他调用如<code>$&#123;wheel_joint_y&#125;</code>是之前使用xacro:property指定的全局变量。</p>
+<h3 id="xacroinclude">2.4 xacro:include</h3>
+<p>很多模型都是已宏的形式进行定义, 并以最小组成分成很多个文件. 而最终的机器人描述就变得非常简单了。 下面摘录一个ur5的描述文件. 从中可以看出来xacro的强大优势：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version=&quot;1.0&quot;?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">robot</span> <span class="attr">xmlns:xacro</span>=<span class="string">&quot;http://www.ros.org/wiki/xacro&quot;</span> <span class="attr">name</span>=<span class="string">&quot;ur5&quot;</span> &gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">&lt;!-- common stuff --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">xacro:include</span> <span class="attr">filename</span>=<span class="string">&quot;$(find ur_description)/urdf/ur5/common.gazebo.xacro&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">&lt;!-- ur5 --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">xacro:include</span> <span class="attr">filename</span>=<span class="string">&quot;$(find ur_description)/urdf/ur5/ur5.urdf.xacro&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">&lt;!-- arm --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">xacro:ur5_robot</span> <span class="attr">prefix</span>=<span class="string">&quot;&quot;</span> <span class="attr">joint_limited</span>=<span class="string">&quot;false&quot;</span>/&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">link</span> <span class="attr">name</span>=<span class="string">&quot;world&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">  <span class="tag">&lt;<span class="name">joint</span> <span class="attr">name</span>=<span class="string">&quot;world_joint&quot;</span> <span class="attr">type</span>=<span class="string">&quot;fixed&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">parent</span> <span class="attr">link</span>=<span class="string">&quot;world&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">child</span> <span class="attr">link</span> = <span class="string">&quot;base_link&quot;</span> /&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">origin</span> <span class="attr">xyz</span>=<span class="string">&quot;0.0 0.0 0.0&quot;</span> <span class="attr">rpy</span>=<span class="string">&quot;0.0 0.0 0.0&quot;</span> /&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">joint</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">robot</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>从上述内容中可以看到, 首先是在ur_description包中找到另外几个xacro文件, 将其包含进来。当然应该注意到, include类似于C语言中的include, 先将该文件扩展到包含的位置. 但包含进来的文件很有可能只是一个参数宏的定义， 并没有被调用。所以, 示例中调用了一个宏<code>&lt;xacro:ur5_robot prefix="" joint_limited="false"/&gt;</code>产生一个ur5机器人。</p>
+<h3 id="可视化-1">2.5 可视化</h3>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">roslaunch urdf_tutorial xacrodisplay.launch model:=path/to/your/xxx.urdf.xacro gui:=<span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<h2 id="使用案例">3. 使用案例</h2>
+<h3 id="xx_description功能包">3.1 xx_description功能包</h3>
+<p>在一个实际机器人项目中，整个项目一般是一个元功能包，对于机器人的描述会建立并放置在一个<code>xxx_description</code>的功能包，比如<code>ur_description</code>就是ur机器人项目下的一个功能包。</p>
+<p>以下面mbot_description功能包为例，完整工程参考：</p>
+<p>https://github.com/huchunxu/ros_basic_tutorials/tree/master/handwriting_urdf/mbot_description</p>
+<p>建立时，要指明依赖ROS自带的urdf和xacro功能包，分别用于解析urdf和xacro文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">catkin_create_pkg mbot_description urdf xacro</span><br></pre></td></tr></table></figure>
+<p>一般文件组织形式如下：</p>
+<p><img src='http://i2.tiimg.com/728885/ca08832987724fee.png'></p>
+<ul>
+<li>urdf文件夹中放.urdf或.xacro文件</li>
+<li>meshes文件夹中放外部渲染模型</li>
+<li>launch文件中一般是在rviz中展示机器人模型的启动文件</li>
+<li>config文件中保存rviz配置</li>
+</ul>
+<h3 id="launch文件">3.2 launch文件</h3>
+<p>xx_description下的launch文件一般是只在rviz中做可视化的（gazebo仿真一般会建新的功能包），用于简单可视化验证。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">launch</span>&gt;</span></span><br><span class="line">	<span class="comment">&lt;!-- 设置机器人模型路径参数 --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;robot_description&quot;</span> <span class="attr">textfile</span>=<span class="string">&quot;$(find mbot_description)/urdf/mbot.urdf&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">&lt;!-- 运行joint_state_publisher节点，发布机器人的关节状态  --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;joint_state_publisher_gui&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;joint_state_publisher_gui&quot;</span> <span class="attr">type</span>=<span class="string">&quot;joint_state_publisher_gui&quot;</span> /&gt;</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">&lt;!-- 运行robot_state_publisher节点，发布tf  --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;robot_state_publisher&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;robot_state_publisher&quot;</span> <span class="attr">type</span>=<span class="string">&quot;robot_state_publisher&quot;</span> /&gt;</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">&lt;!-- 运行rviz可视化界面 --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">type</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">args</span>=<span class="string">&quot;-d $(find mbot_description)/config/mbot_urdf.rviz&quot;</span> <span class="attr">required</span>=<span class="string">&quot;true&quot;</span> /&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">launch</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>如果是xacro定义的，要先使用xacro包解析：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">launch</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">arg</span> <span class="attr">name</span>=<span class="string">&quot;model&quot;</span> <span class="attr">default</span>=<span class="string">&quot;$(find xacro)/xacro --inorder &#x27;$(find mbot_description)/urdf/mbot_gazebo.xacro&#x27;&quot;</span> /&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">arg</span> <span class="attr">name</span>=<span class="string">&quot;gui&quot;</span> <span class="attr">default</span>=<span class="string">&quot;true&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">	<span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;robot_description&quot;</span> <span class="attr">command</span>=<span class="string">&quot;$(arg model)&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 设置GUI参数，显示关节控制插件 --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">param</span> <span class="attr">name</span>=<span class="string">&quot;use_gui&quot;</span> <span class="attr">value</span>=<span class="string">&quot;$(arg gui)&quot;</span>/&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 运行joint_state_publisher节点，发布机器人的关节状态  --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;joint_state_publisher&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;joint_state_publisher&quot;</span> <span class="attr">type</span>=<span class="string">&quot;joint_state_publisher&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">&lt;!-- 运行robot_state_publisher节点，发布tf  --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;robot_state_publisher&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;robot_state_publisher&quot;</span> <span class="attr">type</span>=<span class="string">&quot;robot_state_publisher&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">&lt;!-- 运行rviz可视化界面 --&gt;</span></span><br><span class="line">	<span class="tag">&lt;<span class="name">node</span> <span class="attr">name</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">pkg</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">type</span>=<span class="string">&quot;rviz&quot;</span> <span class="attr">args</span>=<span class="string">&quot;-d $(find mbot_description)/config/mbot.rviz&quot;</span> <span class="attr">required</span>=<span class="string">&quot;true&quot;</span> /&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="name">launch</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ROS/" rel="tag"># ROS</a>
+              <a href="/tags/Robotics/" rel="tag"># Robotics</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/30/ros-3-rospy%E7%BC%96%E7%A8%8B/" rel="prev" title="ros(3)rospy编程">
+      <i class="fa fa-chevron-left"></i> ros(3)rospy编程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/11/05/ros-5-Gazebo%E4%BB%BF%E7%9C%9F/" rel="next" title="ros(5)Gazebo仿真">
+      ros(5)Gazebo仿真 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#urdf"><span class="nav-text">1. urdf</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84"><span class="nav-text">1.1 基本结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#link"><span class="nav-text">1.2 link</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#joint"><span class="nav-text">1.3 joint</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E8%A7%86%E5%8C%96"><span class="nav-text">1.4 可视化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#xacro"><span class="nav-text">2. xacro</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#xacro%E4%B8%8Eurdf%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-text">2.1 xacro与urdf的关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xacroproperty"><span class="nav-text">2.2 xacro:property</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xacromacro"><span class="nav-text">2.2 xacro:macro</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#xacroinclude"><span class="nav-text">2.4 xacro:include</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E8%A7%86%E5%8C%96-1"><span class="nav-text">2.5 可视化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B"><span class="nav-text">3. 使用案例</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#xx_description%E5%8A%9F%E8%83%BD%E5%8C%85"><span class="nav-text">3.1 xx_description功能包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#launch%E6%96%87%E4%BB%B6"><span class="nav-text">3.2 launch文件</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="zhanglr"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">zhanglr</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zlr20" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zlr20" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zlr20@mails.tsinghua.edu.cn" title="E-Mail → mailto:zlr20@mails.tsinghua.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-robot"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhanglr</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

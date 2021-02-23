@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/medium.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/small.ico">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="强化学习(Reinforcement Learning, RL)的主要特征是智能体(Agent)和环境(Environment)。  环境是智能体存在并与之交互的世界。在交互的每个步骤中，智能体都会获得对世界状态的观察（也许只是部分可观的），然后决定要采取的行动。当智能体执行动作后，环境会产生变化；环境也可能会自发变化。 智能体还从环境中感知到奖励(reward)信号，一个表明当前环境状态好坏的标">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpinningUp(1)强化学习核心概念">
+<meta property="og:url" content="http://example.com/2020/11/23/SpinningUp-1-%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/index.html">
+<meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="强化学习(Reinforcement Learning, RL)的主要特征是智能体(Agent)和环境(Environment)。  环境是智能体存在并与之交互的世界。在交互的每个步骤中，智能体都会获得对世界状态的观察（也许只是部分可观的），然后决定要采取的行动。当智能体执行动作后，环境会产生变化；环境也可能会自发变化。 智能体还从环境中感知到奖励(reward)信号，一个表明当前环境状态好坏的标">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://i1.fuimg.com/728885/a9d3f1a3998f9808.png">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/26f82323a4055444b30fa791238ec90913a12d7b.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/e043709b46c9aa6811953dabd82461db6308fe19.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/85d41c8c383a96e1ed34fc66f14abd61b132dd28.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/01d48ea453ecb7b560ea7d42144ae24422fbd0eb.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/bc92e8ce1cf0aaa212e144d5ed74e3b115453cb6.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/7e4a2964e190104a669406ca5e1e320a5da8bae0.svg">
+<meta property="og:image" content="https://spinningup.openai.com/en/latest/_images/math/f8ab9b211bc9bb91cde189360051e3bd1f896afa.svg">
+<meta property="article:published_time" content="2020-11-23T10:30:38.000Z">
+<meta property="article:modified_time" content="2021-02-23T14:04:23.011Z">
+<meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="RL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://i1.fuimg.com/728885/a9d3f1a3998f9808.png">
+
+<link rel="canonical" href="http://example.com/2020/11/23/SpinningUp-1-%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>SpinningUp(1)强化学习核心概念 | 我的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">我的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/11/23/SpinningUp-1-%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="zhanglr">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SpinningUp(1)强化学习核心概念
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-23 10:30:38" itemprop="dateCreated datePublished" datetime="2020-11-23T10:30:38Z">2020-11-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-23 14:04:23" itemprop="dateModified" datetime="2021-02-23T14:04:23Z">2021-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" itemprop="url" rel="index"><span itemprop="name">强化学习</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><strong>强化学习</strong>(Reinforcement Learning, RL)的主要特征是<strong>智能体</strong>(Agent)和<strong>环境</strong>(Environment)。</p>
+<p><img src='http://i1.fuimg.com/728885/a9d3f1a3998f9808.png'></p>
+<p>环境是智能体存在并与之交互的世界。在交互的每个步骤中，智能体都会获得对世界状态的观察（也许只是部分可观的），然后决定要采取的行动。当智能体执行动作后，环境会产生变化；环境也可能会自发变化。</p>
+<p>智能体还从环境中感知到<strong>奖励</strong>(reward)信号，一个表明当前环境状态好坏的标量值。智能体的目标是最大化其累积奖励，也就是<strong>回报</strong>(return)。强化学习就是智能体通过与环境交互、学习行为策略从而完成这一目标的过程。</p>
+<a id="more"></a>
+<p>为了便于后面的学习，我们介绍一些术语：</p>
+<ul>
+<li>状态和观察(states and observations)</li>
+<li>动作空间(action spaces)</li>
+<li>策略(policies)</li>
+<li>轨迹(trajectories)</li>
+<li>不同的回报公式(formulations of return)</li>
+<li>强化学习优化问题(the RL optimization problem)</li>
+<li>值函数(value functions)</li>
+</ul>
+<h2 id="状态和观察-statesobservations">1. 状态和观察 States&amp;Observations</h2>
+<p>一个<strong>状态</strong><span class="math inline">\(s\)</span>是一个关于环境状态的完整描述，环境中除了状态以外没有更多的信息。<strong>观察</strong><span class="math inline">\(o\)</span>是对于一个状态的部分描述，可能会漏掉一些信息。</p>
+<p>在深度强化学习中，我们一般用实数向量、矩阵或者更高阶的张量表示状态和观察。比如说，视觉上的<strong>观察</strong>可以用RGB矩阵的方式表示其像素值；机器人的<strong>状态</strong> 可以通过关节角度和速度来表示。</p>
+<p>如果智能体观察到环境的全部状态，我们通常说环境是<strong>完全可观</strong>(fully observed)的。如果智能体只能观察到状态中的一部分信息，我们称之为<strong>部分可观</strong>(partially observed)。举个例子，Atari游戏或自动驾驶中的一帧画面，肯定是不能完整涵盖所有状态信息的，至少无法由一帧画面判定运动信息，因此这个场景就是部分可观的。解决部分可观环境中的决策问题，对人来说都非常困难，对于智能体来说，更是研究的热点与难点。</p>
+<p>另外，值得注意的是，不同文献中，<span class="math inline">\(s\)</span>和<span class="math inline">\(o\)</span>经常出现混用，因为强化学习理论上，动作是基于状态而给出的，但是实际上，我们只能获取环境的观察值，而不能知道环境的全部状态。但不必为这个问题纠结，只要把握住状态和观察的核心概念与差别，就不会出现理解上的问题。</p>
+<h2 id="动作空间-action-spaces">2.动作空间 Action Spaces</h2>
+<p>不同的环境允许不同类型的动作。所有有效动作的集合称之为 <strong>动作空间</strong>。有些环境，比如说 Atari 游戏和围棋，属于<strong>离散动作空间</strong>(discrete action spaces)，这种情况下智能体只能采取有限的动作。其他的一些环境，比如智能体在物理世界中控制机器人，属于<strong>连续动作空间</strong>（continuous action spaces)。在连续动作空间中，动作是实数向量。</p>
+<p>这种区别对于深度强化学习来说，影响深远。有些种类的算法只能直接用在某些案例上，如果需要用在别的地方，可能就需要大量重写代码。</p>
+<h2 id="策略-policies">3. 策略 Policies</h2>
+<p><strong>策略</strong>是智能体用于决定下一步执行什么行动的规则。</p>
+<p>策略可以是确定性的，一般表示为：<span class="math inline">\(a_t = \mu(s_t)\)</span>；也可以是随机的，一般表示为一个条件分布：<span class="math inline">\(a_t \sim \pi(\cdot | s_t)\)</span>。</p>
+<p>因为策略本质上就是智能体的大脑，所以很多时候“策略”和“智能体”这两个名词经常互换，例如我们会说：“策略的目的是最大化奖励”。</p>
+<p>在深度强化学习中，我们处理的是参数化的策略（parameterized policies），这些策略的输出，依赖于一系列计算函数，而这些函数又依赖于参数（例如神经网络的权重和误差），所以我们可以通过一些优化算法改变智能体的的行为。</p>
+<p>我们经常把这些策略的参数写作<span class="math inline">\(\theta\)</span>或者<span class="math inline">\(\phi\)</span>，然后把它写在策略的下标上来强调两者的联系，如<span class="math inline">\(a_t = \mu_\theta(s_t)\)</span>；<span class="math inline">\(a_t \sim \pi_\theta(\cdot | s_t)\)</span>。</p>
+<p><strong>确定性策略</strong>(Deterministic Policies)：</p>
+<p>这是一个使用<code>PyTorch</code>构建连续动作空间+确定性策略的代码片段：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pi_net = torch.nn.Sequential(</span><br><span class="line">              nn.Linear(obs_dim, <span class="number">64</span>),</span><br><span class="line">              nn.Tanh(),</span><br><span class="line">              nn.Linear(<span class="number">64</span>, <span class="number">64</span>),</span><br><span class="line">              nn.Tanh(),</span><br><span class="line">              nn.Linear(<span class="number">64</span>, act_dim)</span><br><span class="line">            )</span><br></pre></td></tr></table></figure>
+<p>这将构建一个多层感知器（MLP）网络，其中包含两个大小为64的隐藏层和激活函数。如果obs是包含一batch的观测值的Numpy数组，则pi_net可用于获取一batch的动作输出，如下所示：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">obs_tensor = torch.as_tensor(obs, dtype=torch.float32)</span><br><span class="line">actions = pi_net(obs_tensor)</span><br></pre></td></tr></table></figure>
+<p><strong>随机性策略</strong>(Stochastic Policies)：</p>
+<p>Deep-RL中最常见的两种随机策略是分类型策略(categorical policies)和对角高斯策略(diagonal Gaussian policies)。分类型策略适用于离散操作空间，而对角线高斯策略适用于连续操作空间。</p>
+<p>训练和使用随机策略的时候有两个重要的计算过程：</p>
+<ul>
+<li>从策略中采样行动<span class="math inline">\(a\)</span>，用在轨迹采集</li>
+<li>计算特定行动的似然(likelihoods) <span class="math inline">\(\log \pi_\theta(a|s)\)</span>，这与策略梯度相关</li>
+</ul>
+<p>下面具体看一下：</p>
+<p><strong>分类型策略</strong>就像是一个离散动作空间的分类器(classifier)：输入是观察，接着通过一些卷积层、全连接层等，至于具体是哪些取决于输入的类型，最后一个线性层输出每个行动的logit数值，最后用一个Soft-max层把logit值转换为可能性。<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=Qn4Fme1fK-M">YouTube: logit and softmax in deep learning</a></p>
+<ul>
+<li>采样：给定每个动作的概率，像<code>PyTorch</code>和<code>Tensorflow</code>这样的框架都有内置的采样工具。参考：<a target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/distributions.html#categorical">PyTorch中使用log-odds或prob数组采样</a>和<a target="_blank" rel="noopener" href="https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/distributions/Categorical">TF中使用log-odds或prob数组采样</a></li>
+<li>似然：Soft-max层输出不同动作的概率，表示为<span class="math inline">\(P_\theta(s)\)</span>。它是一个向量，但是由于有多个动作，因此我们可以将动作视为向量的索引，即<span class="math inline">\(a=0,1,2,..\)</span>。然后可以通过索引向量来获得动作的对数似然率，即<span class="math inline">\(\log \pi_\theta(a|s) = \log(P_\theta(s))[a]\)</span>。</li>
+</ul>
+<p>多元高斯分布由均值向量和协方差矩阵来描述。对角高斯分布是一种特殊情况，其中协方差矩阵是一个对角矩阵。因此我们可以用向量表示它。</p>
+<p><strong>对角高斯策略</strong>由一个神经网络表示，该神经网络将观测值映射为动作的均值<span class="math inline">\(\mu_\theta(s)\)</span>（向量）。协方差矩阵有两种不同的表示方式，第一种方法是用一个对数标准差<span class="math inline">\(\log \sigma\)</span>（向量），它不是状态的函数，而是独立参数；第二种方法是也由神经网络将对数标准差映射出来，即<span class="math inline">\(\log \sigma_\theta(s)\)</span>。注意，在这两种情况下，我们都输出对数标准差而不是直接输出标准差的原因是标准差必须为非负数，而加入<span class="math inline">\(\log\)</span>后则可以在整个<span class="math inline">\((-\infty,+\infty)\)</span>空间上映射，而且可以通过取e幂获得标准差，因此这种表示方式不会有任何损失。</p>
+<ul>
+<li><p>采样：您可以构建标准的概率分布对象，例如<a target="_blank" rel="noopener" href="https://pytorch.org/docs/stable/distributions.html#normal">torch.distributions.Normal</a> 或<a target="_blank" rel="noopener" href="https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/distributions/Normal">tf.distributions.Normal</a>并使用这些对象的sample方法生成样本。</p></li>
+<li><p>似然：一个 <span class="math inline">\(k\)</span> 维行动 <span class="math inline">\(a\)</span> 基于均值为<span class="math inline">\(\mu = \mu_\theta(s)\)</span>，标准差为<span class="math inline">\(\sigma = \sigma_\theta(s)\)</span> 的对角高斯的对数似然是</p>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/26f82323a4055444b30fa791238ec90913a12d7b.svg" /></p></li>
+</ul>
+<h2 id="轨迹-trajectories">4. 轨迹 Trajectories</h2>
+<p>运动轨迹<span class="math inline">\(\tau\)</span>指的是状态和行动的序列，即$= (s_0, a_0, s_1, a_1, ...)。</p>
+<p>第一个状态<span class="math inline">\(s_0\)</span>是从<strong>初始状态分布</strong>中随机采样的：<span class="math inline">\(s_0 \sim \rho_0(\cdot)\)</span>。</p>
+<p>状态转换是由环境的“自然法则”确定的，并且只依赖于最近的行动<span class="math inline">\(a_t\)</span>，即具有<strong>马尔可夫性</strong>。</p>
+<p>状态转移方程可以是确定性的：<span class="math inline">\(s_{t+1} = f(s_t, a_t)\)</span>；也可以是随机的：<span class="math inline">\(s_{t+1} \sim P(\cdot|s_t, a_t)\)</span>。</p>
+<p><strong>Trajectories</strong>在文献中常常也被称作 <strong>episodes</strong> 或者 <strong>rollouts</strong>，它们是等价的。</p>
+<h2 id="奖励和回报-rewardreturn">5. 奖励和回报 Reward&amp;Return</h2>
+<p>强化学习中，奖励函数<span class="math inline">\(R\)</span>非常重要。它由当前状态、已经执行的行动和下一步的状态共同决定：<span class="math inline">\(r_t = R(s_t, a_t, s_{t+1})\)</span>。有时候这个公式会被简化到只依赖当前的状态： <span class="math inline">\(r_t = R(s_t)\)</span>，或者状态-行动对：<span class="math inline">\(r_t = R(s_t,a_t)\)</span>。</p>
+<p>智能体的目标是最大化行动轨迹的累计奖励（cumulative reward over a trajectory），表示为 <span class="math inline">\(R(\tau)\)</span>，有的文献中成为回报G。</p>
+<p>一种回报形式是有限长度的无折扣回报（finite-horizon undiscounted return），即在固定的步骤窗口中获得的奖励之和：<span class="math inline">\(R(\tau) = \sum_{t=0}^T r_t\)</span>。</p>
+<p>另一种回报形式是无限长度的有折扣回报（infinite-horizon discounted return），它依然是智能体获得的所有奖励的总和，但对将来获得的收益进行了数值上的折扣：<span class="math inline">\(R(\tau) = \sum_{t=0}^{\infty} \gamma^t r_t\)</span>。<span class="math inline">\(\gamma \in (0,1)\)</span>被称作折扣因子。</p>
+<p>为什么我们需要折扣因子呢？我们不是只想获得所有奖励吗？是这样的，但是折扣因子在直观上和数学上都很方便。从直觉上讲：当下的收益比之后的收益要来的更好更直接。数学上：无限时间步的奖励之和可能不会收敛到有限的值，但是在有折扣因子的情况下一般是可以收敛的。</p>
+<p>尽管这两种回报形式之间的差异非常明显，但Deep-RL实践中往往会混用。例如，我们经常设置算法来优化未折现收益，但在评估价值函数时使用折现因子。</p>
+<h2 id="强化学习问题-the-rl-problem">6. 强化学习问题 The RL Problem</h2>
+<p>无论选择哪种方式衡量回报（<span class="math inline">\(T\)</span>步累计奖赏或者 <span class="math inline">\(\gamma\)</span> 折扣奖励），无论选择哪种策略，强化学习的目标都是选择一种策略从而最大化回报的期望，即<span class="math inline">\(E[R(\tau)]\)</span>。</p>
+<p>讨论这个期望的表达式之前，我们先讨论下行动轨迹的概率分布。我们假设环境转换和策略都是随机的。这种情况下，<span class="math inline">\(T\)</span>步行动轨迹的概率是<span class="math inline">\(P(\tau|\pi) = \rho_0 (s_0) \prod_{t=0}^{T-1} P(s_{t+1} | s_t, a_t) \pi(a_t | s_t)\)</span>。</p>
+<p>则回报的期望是<span class="math inline">\(J(\pi) = \int_{\tau} P(\tau|\pi) R(\tau) = \mathop{E}_{\tau\sim \pi}{R(\tau)}\)</span>。</p>
+<p>强化学习中的核心优化问题可以表示为：<span class="math inline">\(\pi^* = \arg \max_{\pi} J(\pi)\)</span>。 <span class="math inline">\(\pi^*\)</span>是<strong>最优策略</strong>，该策略可以最大会回报的期望。</p>
+<h2 id="价值函数-value-functions">7. 价值函数 Value Functions</h2>
+<p>了解状态或状态-动作对的值通常很有用。所谓价值，是指如果从某个状态或状态-动作对开始，然后再一直根据特定策略采取行动，最终的期望回报。几乎每种RL算法都在通过不同方式使用值函数。</p>
+<p>这里介绍四种主要函数：</p>
+<ol type="1">
+<li><p>The <strong>On-Policy Value Function</strong> :</p>
+<blockquote>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/e043709b46c9aa6811953dabd82461db6308fe19.svg" /></p>
+</blockquote></li>
+<li><p>The <strong>On-Policy Action-Value Function</strong>:</p>
+<blockquote>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/85d41c8c383a96e1ed34fc66f14abd61b132dd28.svg" /></p>
+</blockquote></li>
+<li><p>The <strong>Optimal Value Function</strong>:</p>
+<blockquote>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/01d48ea453ecb7b560ea7d42144ae24422fbd0eb.svg" /></p>
+</blockquote></li>
+<li><p>The <strong>Optimal Action-Value Function</strong>:</p>
+<blockquote>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/bc92e8ce1cf0aaa212e144d5ed74e3b115453cb6.svg" /></p>
+</blockquote></li>
+</ol>
+<h2 id="bellman-backup">8. Bellman Backup</h2>
+<p>所有四个值函数都遵循称为Bellman方程的自洽方程。</p>
+<p>贝尔曼期望方程：</p>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/7e4a2964e190104a669406ca5e1e320a5da8bae0.svg" /></p>
+<p>贝尔曼最优方程：</p>
+<p><img src="https://spinningup.openai.com/en/latest/_images/math/f8ab9b211bc9bb91cde189360051e3bd1f896afa.svg" /></p>
+<p>由不动点定理，通过不断backup迭代，均能收敛到策略价值和最优价值。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/RL/" rel="tag"># RL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/11/05/ros-5-Gazebo%E4%BB%BF%E7%9C%9F/" rel="prev" title="ros(5)Gazebo仿真">
+      <i class="fa fa-chevron-left"></i> ros(5)Gazebo仿真
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/11/24/SpinningUp-2-%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/" rel="next" title="SpinningUp(2)强化学习算法概述">
+      SpinningUp(2)强化学习算法概述 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E5%92%8C%E8%A7%82%E5%AF%9F-statesobservations"><span class="nav-text">1. 状态和观察 States&amp;Observations</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E4%BD%9C%E7%A9%BA%E9%97%B4-action-spaces"><span class="nav-text">2.动作空间 Action Spaces</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AD%96%E7%95%A5-policies"><span class="nav-text">3. 策略 Policies</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BD%A8%E8%BF%B9-trajectories"><span class="nav-text">4. 轨迹 Trajectories</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A5%96%E5%8A%B1%E5%92%8C%E5%9B%9E%E6%8A%A5-rewardreturn"><span class="nav-text">5. 奖励和回报 Reward&amp;Return</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E9%97%AE%E9%A2%98-the-rl-problem"><span class="nav-text">6. 强化学习问题 The RL Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%B7%E5%80%BC%E5%87%BD%E6%95%B0-value-functions"><span class="nav-text">7. 价值函数 Value Functions</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#bellman-backup"><span class="nav-text">8. Bellman Backup</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="zhanglr"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">zhanglr</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zlr20" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zlr20" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zlr20@mails.tsinghua.edu.cn" title="E-Mail → mailto:zlr20@mails.tsinghua.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-robot"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhanglr</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+          load: ['[tex]/mhchem'],
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+          packages: {'[+]': ['mhchem']},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

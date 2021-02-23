@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/medium.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/small.ico">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Python 提供了很多MPI模块写并行程序，其中 Spinning UP项目主要使用了mpi4py 这个库来实现并行强化学习。因此，事先掌握这个库的用法有助于源码理解或自己写项目。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpinningUp(3)基于mpi4py的并行">
+<meta property="og:url" content="http://example.com/2021/01/04/SpinningUp-3-%E5%9F%BA%E4%BA%8Empi4py%E7%9A%84%E5%B9%B6%E8%A1%8C/index.html">
+<meta property="og:site_name" content="我的博客">
+<meta property="og:description" content="Python 提供了很多MPI模块写并行程序，其中 Spinning UP项目主要使用了mpi4py 这个库来实现并行强化学习。因此，事先掌握这个库的用法有助于源码理解或自己写项目。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/Broadcasting.png">
+<meta property="og:image" content="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/scatter.png">
+<meta property="og:image" content="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/Gathering.png">
+<meta property="og:image" content="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/mpi-sum.png">
+<meta property="article:published_time" content="2021-01-04T09:29:01.000Z">
+<meta property="article:modified_time" content="2021-02-23T14:04:23.011Z">
+<meta property="article:author" content="zhanglr">
+<meta property="article:tag" content="RL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/Broadcasting.png">
+
+<link rel="canonical" href="http://example.com/2021/01/04/SpinningUp-3-%E5%9F%BA%E4%BA%8Empi4py%E7%9A%84%E5%B9%B6%E8%A1%8C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>SpinningUp(3)基于mpi4py的并行 | 我的博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">我的博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/01/04/SpinningUp-3-%E5%9F%BA%E4%BA%8Empi4py%E7%9A%84%E5%B9%B6%E8%A1%8C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="zhanglr">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我的博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          SpinningUp(3)基于mpi4py的并行
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-04 09:29:01" itemprop="dateCreated datePublished" datetime="2021-01-04T09:29:01Z">2021-01-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-23 14:04:23" itemprop="dateModified" datetime="2021-02-23T14:04:23Z">2021-02-23</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/" itemprop="url" rel="index"><span itemprop="name">强化学习</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Python 提供了很多MPI模块写并行程序，其中 Spinning UP项目主要使用了<code>mpi4py</code> 这个库来实现并行强化学习。因此，事先掌握这个库的用法有助于源码理解或自己写项目。</p>
+<a id="more"></a>
+<h2 id="什么是mpi">什么是MPI</h2>
+<p>MPI的全称是Message Passing Interface，即消息传递接口。</p>
+<ul>
+<li>它并不是一门语言，而是一个库，我们可以用Fortran、C、C++结合MPI提供的接口来将串行的程序进行并行化处理，也可以认为Fortran+MPI或者C+MPI是一种再原来串行语言的基础上扩展出来的并行语言。</li>
+<li>它是一种标准而不是特定的实现，具体的可以有很多不同的实现，例如MPICH、OpenMPI等。</li>
+<li>它是一种消息传递编程模型，顾名思义，它就是专门服务于进程间通信的。</li>
+</ul>
+<p>MPI的工作方式很好理解，我们可以同时启动一组进程，在同一个通信域中不同的进程都有不同的编号，程序员可以利用MPI提供的接口来给不同编号的进程分配不同的任务和帮助进程相互交流最终完成同一个任务。就好比包工头给工人们编上了工号然后指定一个方案来给不同编号的工人分配任务并让工人相互沟通完成任务。</p>
+<p>由于CPython中的GIL的存在我们可以暂时不奢望能在CPython中使用多线程利用多核资源进行并行计算了，因此我们在Python中可以利用多进程的方式充分利用多核资源。Python中我们可以使用multiprocessing模块中的pipe、queue、Array、Value等等工具来实现进程间通讯和数据共享，但是在编写起来仍然具有很大的不灵活性。而这一方面正是MPI所擅长的领域，因此如果能够在Python中调用MPI的接口将使事情变得非常容易。</p>
+<p>mpi4py是一个构建在MPI之上的Python库，主要使用Cython编写。mpi4py使得Python的数据结构可以方便的在多进程中传递。mpi4py是一个很强大的库，它实现了很多MPI标准中的接口，包括点对点通信，组内集合通信、非阻塞通信、重复非阻塞通信、组间通信等，基本上能想到用到的MPI接口mpi4py中都有相应的实现。</p>
+<h2 id="在windows中的安装">在Windows中的安装</h2>
+<ul>
+<li><p>https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi?redirectedfrom=MSDN下载微软官方的MPI程序，下载那个exe就行了，管理员身份点击安装。cmd命令行中输入mpiexec能显示相关信息即可。</p></li>
+<li><p><code>pip install mpi4py</code>安装Python第三方库以支持MPI环境。</p></li>
+<li><p>测试：</p>
+<p>编写脚本如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># helloMPI.py</span></span><br><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">rank = comm.Get_rank()</span><br><span class="line">print(<span class="string">&quot;hello world from process &quot;</span>, rank)</span><br></pre></td></tr></table></figure>
+<p>命令行执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mpiexec -n 5 python helloMPI.py</span><br></pre></td></tr></table></figure>
+<p>输出如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">hello world from process  2</span><br><span class="line">hello world from process  0</span><br><span class="line">hello world from process  4</span><br><span class="line">hello world from process  1</span><br><span class="line">hello world from process  3</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="mpi4py使用">mpi4py使用</h2>
+<h3 id="基本">基本</h3>
+<ul>
+<li><code>from mpi4py import MPI</code>将会为脚在MPI环境中注册</li>
+<li><code>MPI.COMM_WORLD</code>访问进程通信域</li>
+<li><code>MPI.COMM_WORLD.Get_rank()</code>获取当前进程编号</li>
+<li><code>MPI.COMM_WORLD.Get_size()</code>获取总进程数</li>
+</ul>
+<h3 id="点到点通信">点到点通信</h3>
+<ul>
+<li><code>COMM_WORLD.send(data, process_destination)</code>: 通过它在rank编号来区分发送给不同进程的数据</li>
+<li><code>COMM_WORLD.recv(process_source)</code>: 接收来自源进程的数据，也是通过rank编号来区分的</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># p2p.py</span></span><br><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">rank = MPI.COMM_WORLD.Get_rank()</span><br><span class="line"></span><br><span class="line">print(<span class="string">&quot;my rank is : &quot;</span> , rank)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">0</span>:</span><br><span class="line">    data = <span class="number">10000000</span></span><br><span class="line">    destination_process = <span class="number">4</span></span><br><span class="line">    MPI.COMM_WORLD.send(data,dest=destination_process)</span><br><span class="line">    print(<span class="string">&quot;sending data % s &quot;</span> % data + <span class="string">&quot;to process % d&quot;</span> % destination_process)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">1</span>:</span><br><span class="line">    destination_process = <span class="number">8</span></span><br><span class="line">    data = <span class="string">&quot;hello&quot;</span></span><br><span class="line">    MPI.COMM_WORLD.send(data,dest=destination_process)</span><br><span class="line">    print(<span class="string">&quot;sending data % s :&quot;</span> % data + <span class="string">&quot;to process % d&quot;</span> % destination_process)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">4</span>:</span><br><span class="line">   data = MPI.COMM_WORLD.recv(source = <span class="number">0</span>)</span><br><span class="line">   print(<span class="string">&quot;data received is = % s&quot;</span> % data)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">8</span>:</span><br><span class="line">   data1 = MPI.COMM_WORLD.recv(source = <span class="number">1</span>)</span><br><span class="line">   print(<span class="string">&quot;data1 received is = % s&quot;</span> % data1)</span><br></pre></td></tr></table></figure>
+<p>命令行执行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mpiexec -n 9 python p2p.py</span><br></pre></td></tr></table></figure>
+<p>可能的结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">my rank is :  3</span><br><span class="line">my rank is :  7</span><br><span class="line">my rank is :  1</span><br><span class="line">sending data hello :to process  8</span><br><span class="line">my rank is :  2</span><br><span class="line">my rank is :  8</span><br><span class="line">data1 received is = hello</span><br><span class="line">my rank is :  0</span><br><span class="line">sending data 10000000 to process  4</span><br><span class="line">my rank is :  5</span><br><span class="line">my rank is :  6</span><br><span class="line">my rank is :  4</span><br><span class="line">data received is = 10000000</span><br></pre></td></tr></table></figure>
+<p>整个过程分为两部分，发送者发送数据，接收者接收数据，二者必须都指定发送方/接收方。<code>COMM_WORLD.send()</code> 和 <code>COMM_WORLD.recv()</code> 函数都是阻塞的函数。他们会一直阻塞调用者，直到数据使用完成。</p>
+<h3 id="broadcast广播">broadcast（广播）</h3>
+<p>在并行代码中，我们会经常需要在多个进程间共享某个变量运行时的值，为了解决这个问题，使用了通讯数。举例说，如果进程0要发送信息给进程1和进程2，同时也会发送信息给进程3，4，5，6，即使这些进程并不需要这些信息。</p>
+<p><img src='https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/Broadcasting.png' width=700></p>
+<p><code>mpi4py</code> 模块通过以下的方式提供广播的功能：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">buf = COMM_WORLD.bcast(data_to_share, rank_of_root_process)</span><br></pre></td></tr></table></figure>
+<p>这个函数将root消息中包含的信息发送给属于通讯组其他的进程，每个进程必须通过相同的 <code>root</code> 和 <code>COMM_WORLD.bcast</code> 来调用它。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># broadcast.py</span></span><br><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">rank = comm.Get_rank()</span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">0</span>:</span><br><span class="line">    variable_to_share = <span class="number">100</span></span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    variable_to_share = <span class="literal">None</span> <span class="comment"># 初始化是必要的，否则bcast无法传参</span></span><br><span class="line">variable_to_share = comm.bcast(variable_to_share, root=<span class="number">0</span>)</span><br><span class="line">print(<span class="string">&quot;process = %d&quot;</span> %rank + <span class="string">&quot; variable shared  = %d &quot;</span> %variable_to_share)</span><br></pre></td></tr></table></figure>
+<p>命令行执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mpiexec -n 10 python broadcast.py</span><br></pre></td></tr></table></figure>
+<p>可能的结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">process = 0 variable shared  = 100</span><br><span class="line">process = 8 variable shared  = 100</span><br><span class="line">process = 2 variable shared  = 100</span><br><span class="line">process = 3 variable shared  = 100</span><br><span class="line">process = 4 variable shared  = 100</span><br><span class="line">process = 5 variable shared  = 100</span><br><span class="line">process = 9 variable shared  = 100</span><br><span class="line">process = 6 variable shared  = 100</span><br><span class="line">process = 1 variable shared  = 100</span><br><span class="line">process = 7 variable shared  = 100</span><br></pre></td></tr></table></figure>
+<h3 id="scatter分散">scatter（分散）</h3>
+<p>scatter函数和broadcast很像，但是有一个很大的不同， <code>MPI.COMM_WORLD.bcast</code> 将相同的数据发送给所有在监听的进程， <code>MPI.COMM_WORLD.scatter</code> 可以将放在数组中的数据，分别散布给不同的进程。下图展示了scatter的功能：</p>
+<p><img src="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/scatter.png" width=700></p>
+<p>注意，分散时，rank号与数组下标号是对应的，即数组长度必须等于进程数。</p>
+<p><code>mpi4py</code> 中的函数原型如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">recvbuf  = comm.scatter(sendbuf, rank_of_root_process)</span><br></pre></td></tr></table></figure>
+<p>在下面的例子中，我们将观察数据是如何通过 <code>scatter</code> 发送给不同的进程的：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">rank = comm.Get_rank()</span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">0</span>:</span><br><span class="line">    array_to_share = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span> ,<span class="number">5</span> ,<span class="number">6</span> ,<span class="number">7</span>, <span class="number">8</span> ,<span class="number">9</span> ,<span class="number">10</span>]</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    array_to_share = <span class="literal">None</span></span><br><span class="line"><span class="comment"># 第i个变量将会通过comm.scatter发送给第i个进程</span></span><br><span class="line">recvbuf = comm.scatter(array_to_share, root=<span class="number">0</span>)</span><br><span class="line">print(<span class="string">&quot;process = %d&quot;</span> %rank + <span class="string">&quot; recvbuf = %d &quot;</span> %recvbuf)</span><br></pre></td></tr></table></figure>
+<p>运行代码的输出如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt;mpiexec -n 10 python scatter.py</span><br><span class="line">process = 0 variable shared  = 1</span><br><span class="line">process = 4 variable shared  = 5</span><br><span class="line">process = 6 variable shared  = 7</span><br><span class="line">process = 2 variable shared  = 3</span><br><span class="line">process = 5 variable shared  = 6</span><br><span class="line">process = 3 variable shared  = 4</span><br><span class="line">process = 7 variable shared  = 8</span><br><span class="line">process = 1 variable shared  = 2</span><br><span class="line">process = 8 variable shared  = 9</span><br><span class="line">process = 9 variable shared  = 10</span><br></pre></td></tr></table></figure>
+<h3 id="gather聚合">gather（聚合）</h3>
+<p><code>gather</code> 函数基本上是反向的 <code>scatter</code> ，即手机所有进程发送向root进程的数据。 <code>mpi4py</code> 实现的 <code>gather</code> 函数如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">recvbuf = comm.gather(sendbuf, rank_of_root_process)</span><br></pre></td></tr></table></figure>
+<p>这里， <code>sendbuf</code> 是要发送的数据， <code>rank_of_root_process</code> 代表要接收数据进程。</p>
+<p><img src="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/Gathering.png" width=700></p>
+<p>在接下来的例子中，我们想实现上图表示的过程。每一个进程都构建自己的数据，发送给root进程（rank为0）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">size = comm.Get_size()</span><br><span class="line">rank = comm.Get_rank()</span><br><span class="line">data = (rank+<span class="number">1</span>)**<span class="number">2</span></span><br><span class="line">data = comm.gather(data, root=<span class="number">0</span>)</span><br><span class="line"><span class="keyword">if</span> rank == <span class="number">0</span>:</span><br><span class="line">    <span class="built_in">print</span> (<span class="string">&quot;rank = %s &quot;</span> %rank + <span class="string">&quot;...receiving data to other process&quot;</span>)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, size):</span><br><span class="line">        value = data[i]</span><br><span class="line">        print(<span class="string">&quot; process %s receiving %s from process %s&quot;</span> % (rank , value , i))</span><br></pre></td></tr></table></figure>
+<p>最后，我们用5个进程来演示：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt;mpiexec -n 5 python gather.py</span><br><span class="line">rank = 0 ...receiving data to other process</span><br><span class="line">process 0 receiving 4 from process 1</span><br><span class="line">process 0 receiving 9 from process 2</span><br><span class="line">process 0 receiving 16 from process 3</span><br><span class="line">process 0 receiving 25 from process 4</span><br></pre></td></tr></table></figure>
+<h3 id="reduce">reduce</h3>
+<p>同 <code>comm.gather</code> 一样， <code>comm.reduce</code> 让root进程接收一个数组，但是不同的是，每个进程都维护一个数组，然后所有进程<code>sendbuf</code>第i位元素参与指定操作，而后赋给root进程<code>recvbuf</code>中的第i位。</p>
+<p>在 <code>mpi4py</code> 中，我们将简化操作定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">comm.Reduce(sendbuf, recvbuf, rank_of_root_process, op &#x3D; type_of_reduction_operation)</span><br></pre></td></tr></table></figure>
+<p>这里需要注意的是，参数 <code>op</code> 代表你想应用在数据上的操作， <code>mpi4py</code> 模块代表定义了一系列的操作，其中一些如下：</p>
+<ul>
+<li><code>MPI.MAX</code> : 返回最大的元素</li>
+<li><code>MPI.MIN</code> : 返回最小的元素</li>
+<li><code>MPI.SUM</code> : 对所有元素相加</li>
+<li><code>MPI.PROD</code> : 对所有元素相乘</li>
+<li><code>MPI.LAND</code> : 对所有元素进行逻辑操作</li>
+<li><code>MPI.MAXLOC</code> : 返回最大值，以及拥有它的进程</li>
+<li><code>MPI.MINLOC</code> : 返回最小值，以及拥有它的进程</li>
+</ul>
+<p>现在，我们用 <code>MPI.SUM</code> 实验一下对结果进行相加的操作。每一个进程维护一个大小为 3 的数组，我们用 <code>numpy</code> 来操作这些数组：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> numpy</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">size = comm.size</span><br><span class="line">rank = comm.rank</span><br><span class="line">array_size = <span class="number">3</span></span><br><span class="line">recvdata = numpy.zeros(array_size, dtype=numpy.<span class="built_in">int</span>)</span><br><span class="line">senddata = (rank+<span class="number">1</span>)*numpy.arange(size,dtype=numpy.<span class="built_in">int</span>)</span><br><span class="line">print(<span class="string">&quot;process %s sending %s &quot;</span> % (rank , senddata))</span><br><span class="line">comm.Reduce(senddata, recvdata, root=<span class="number">0</span>, op=MPI.SUM)</span><br><span class="line">print(<span class="string">&#x27;on task&#x27;</span>, rank, <span class="string">&#x27;after Reduce:    data = &#x27;</span>, recvdata)</span><br></pre></td></tr></table></figure>
+<p>我们用通讯组进程数为 3 来运行，等于维护的数组的大小。输出的结果如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">C:\&gt;mpiexec -n 3 python reduction2.py</span><br><span class="line"> process 2 sending [0 3 6]</span><br><span class="line">on task 2 after Reduce:    data =  [0 0 0]</span><br><span class="line"> process 1 sending [0 2 4]</span><br><span class="line">on task 1 after Reduce:    data =  [0 0 0]</span><br><span class="line"> process 0 sending [0 1 2]</span><br><span class="line">on task 0 after Reduce:    data =  [ 0  6 12]</span><br></pre></td></tr></table></figure>
+<p>原理图示：</p>
+<p><img src="https://python-parallel-programmning-cookbook.readthedocs.io/zh_CN/latest/_images/mpi-sum.png" width=700></p>
+<h2 id="spinningup中的具体使用">SpinningUp中的具体使用</h2>
+<h3 id="mpi_fork函数">mpi_fork函数</h3>
+<p>代码位置：spinup/utils/mpi_tools.py</p>
+<p>作用：退出当前脚本主进程，并在MPI环境中启动n个当前脚本进程</p>
+<p>注意：</p>
+<ul>
+<li><p>如果报错“hp, ht, pid, tid = _winapi.CreateProcess(executable, args, FileNotFoundError: [WinError 2] 系统找不到指定的文件。”可以参看https://www.jianshu.com/p/fbc31e1cc32a</p></li>
+<li><p>如果windows下使用的是mpich的MPI实现方式，则<code>args = ["mpirun", "-np", str(n)]</code>需要改写成<code>args = ["mpiexec", "-np", str(n)]</code></p></li>
+<li><p>openmpi还支持绑定到核心机制，可能会更稳定。</p></li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> mpi4py <span class="keyword">import</span> MPI</span><br><span class="line"><span class="keyword">import</span> os, subprocess, sys</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mpi_fork</span>(<span class="params">n, bind_to_core=<span class="literal">False</span></span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Re-launches the current script with workers linked by MPI.</span></span><br><span class="line"><span class="string">    Also, terminates the original process that launched it.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> n&lt;=<span class="number">1</span>: </span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">if</span> os.getenv(<span class="string">&quot;IN_MPI&quot;</span>) <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        env = os.environ.copy()</span><br><span class="line">        env.update(</span><br><span class="line">            MKL_NUM_THREADS=<span class="string">&quot;1&quot;</span>,</span><br><span class="line">            OMP_NUM_THREADS=<span class="string">&quot;1&quot;</span>,</span><br><span class="line">            IN_MPI=<span class="string">&quot;1&quot;</span></span><br><span class="line">        )</span><br><span class="line">        args = [<span class="string">&quot;mpiexec&quot;</span>, <span class="string">&quot;-np&quot;</span>, <span class="built_in">str</span>(n)]</span><br><span class="line">        <span class="keyword">if</span> bind_to_core:</span><br><span class="line">            args += [<span class="string">&quot;-bind-to&quot;</span>, <span class="string">&quot;core&quot;</span>]</span><br><span class="line">        args += [sys.executable] + sys.argv</span><br><span class="line">        <span class="comment"># args = [&#x27;mpiexec&#x27;, &#x27;-np&#x27;, &#x27;4&#x27;, &#x27;python&#x27;, &#x27;./mpi_fork.py&#x27;]</span></span><br><span class="line">        subprocess.check_call(args, env=env) <span class="comment"># re-launch</span></span><br><span class="line">        sys.exit() <span class="comment"># terminate original one</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 调用mpi_fork函数，可以在原始命令是python helloMPI.py的情况下等效 mpiexec -np 4 python helloMPI.py</span></span><br><span class="line">mpi_fork(<span class="number">4</span>)</span><br><span class="line">comm = MPI.COMM_WORLD</span><br><span class="line">rank = comm.Get_rank()</span><br><span class="line">print(<span class="string">&quot;hello world from process &quot;</span>, rank)</span><br></pre></td></tr></table></figure>
+<h3 id="allreduce函数">allreduce函数</h3>
+<p>代码位置：spinup/utils/mpi_tools.py</p>
+<p>作用：对所有进程的sendbuf做统一约归，并赋值给每一个进程的recvbuf。不再像reduce那样，有root的概念。</p>
+<p>注意：</p>
+<ul>
+<li><p>实质就是MPI.COMM_WORLD.Allreduce。大写表示可以对numpy数组等数据类型执行操作，小写只能python内置类型。</p></li>
+<li><p>参数因包括<code>snedbuf</code> <code>recbuf</code> 和 <code>op</code>，具体参见reduce。</p></li>
+<li><p>```python # 全约归，不再有root的概念，每个进程的recvbuf都是一样操作、一样结果的 def allreduce(*args, **kwargs): return MPI.COMM_WORLD.Allreduce(*args, **kwargs) <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">### mpi_op函数</span><br><span class="line"></span><br><span class="line">在allreduce的基础上封装的操作的基本函数，主要是为了统一标量和序列操作。</span><br><span class="line"></span><br><span class="line">&#96;&#96;&#96;python</span><br><span class="line">def mpi_op(x, op):</span><br><span class="line">    x, scalar &#x3D; ([x], True) if np.isscalar(x) else (x, False)</span><br><span class="line">    x &#x3D; np.asarray(x, dtype&#x3D;np.float32)</span><br><span class="line">    buff &#x3D; np.zeros_like(x, dtype&#x3D;np.float32)</span><br><span class="line">    allreduce(x, buff, op&#x3D;op)</span><br><span class="line">    return buff[0] if scalar else buff</span><br></pre></td></tr></table></figure></p></li>
+</ul>
+<p>如果指定<code>op=MPI.SUM</code>，那么就是后面定义的<code>mpi_sum(x)</code>函数，诸如此类，都是<code>mpi_op</code>的具体化。</p>
+<p>最后一个函数<code>mpi_statistics_scalar</code>是为了获取进程所有数组的mean和std，如果设置可选参数为True，还能获得所有数组元素的最大最小值。</p>
+<h3 id="结合pytorch的一些操作">结合pytorch的一些操作</h3>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#所有进程梯度信息取平均</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mpi_avg_grads</span>(<span class="params">module</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot; Average contents of gradient buffers across MPI processes. &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> num_procs()==<span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">for</span> p <span class="keyword">in</span> module.parameters():</span><br><span class="line">        p_grad_numpy = p.grad.numpy()   <span class="comment"># numpy view of tensor data</span></span><br><span class="line">        avg_p_grad = mpi_avg(p.grad)</span><br><span class="line">        p_grad_numpy[:] = avg_p_grad[:]</span><br><span class="line"><span class="comment">#所有进程网络参数同步</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sync_params</span>(<span class="params">module</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot; Sync all parameters of module across all MPI processes. &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> num_procs()==<span class="number">1</span>:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">for</span> p <span class="keyword">in</span> module.parameters():</span><br><span class="line">        p_numpy = p.data.numpy()</span><br><span class="line">        broadcast(p_numpy)</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/RL/" rel="tag"># RL</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/11/24/SpinningUp-2-%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/" rel="prev" title="SpinningUp(2)强化学习算法概述">
+      <i class="fa fa-chevron-left"></i> SpinningUp(2)强化学习算法概述
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFmpi"><span class="nav-text">什么是MPI</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8windows%E4%B8%AD%E7%9A%84%E5%AE%89%E8%A3%85"><span class="nav-text">在Windows中的安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#mpi4py%E4%BD%BF%E7%94%A8"><span class="nav-text">mpi4py使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC"><span class="nav-text">基本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%82%B9%E5%88%B0%E7%82%B9%E9%80%9A%E4%BF%A1"><span class="nav-text">点到点通信</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#broadcast%E5%B9%BF%E6%92%AD"><span class="nav-text">broadcast（广播）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#scatter%E5%88%86%E6%95%A3"><span class="nav-text">scatter（分散）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gather%E8%81%9A%E5%90%88"><span class="nav-text">gather（聚合）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reduce"><span class="nav-text">reduce</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#spinningup%E4%B8%AD%E7%9A%84%E5%85%B7%E4%BD%93%E4%BD%BF%E7%94%A8"><span class="nav-text">SpinningUp中的具体使用</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#mpi_fork%E5%87%BD%E6%95%B0"><span class="nav-text">mpi_fork函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#allreduce%E5%87%BD%E6%95%B0"><span class="nav-text">allreduce函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%93%E5%90%88pytorch%E7%9A%84%E4%B8%80%E4%BA%9B%E6%93%8D%E4%BD%9C"><span class="nav-text">结合pytorch的一些操作</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="zhanglr"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">zhanglr</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/zlr20" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;zlr20" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:zlr20@mails.tsinghua.edu.cn" title="E-Mail → mailto:zlr20@mails.tsinghua.edu.cn" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-robot"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhanglr</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
